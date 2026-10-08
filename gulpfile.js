@@ -455,7 +455,12 @@ gulp.task("emoji", function(cb) {
 });
 
 gulp.task("conf", function() {
-    return gulp.src(["conf/conf.example.json"])
+    const configFile = fs.existsSync("conf/conf.json")
+        ? "conf/conf.json"
+        : "conf/conf.example.json";
+
+    return gulp.src(configFile)
+        .pipe(rename("conf.json"))
         .pipe(gulp.dest(paths.dist));
 });
 

@@ -12,7 +12,7 @@ COPY docker/conf.json.template /
 COPY docker/config_env_subst.sh /docker-entrypoint.d/30_config_env_subst.sh
 
 RUN set -eux; \
-    apk update; \
+apk update; \
     apk add --no-cache --virtual .build-deps \
        subversion; \
     apk add \

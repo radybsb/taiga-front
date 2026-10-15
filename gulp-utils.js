@@ -10,11 +10,11 @@ var exports = module.exports = {};
 var fs = require("fs");
 var gutil = require('gulp-util');
 
-var Theme = function() {
+var Theme = function(tmpRoot) {
     var defaultTheme = "taiga";
 
     var themesPath = "app/themes";
-    var tmpThemesPath = "tmp/themes";
+    var tmpThemesPath = (tmpRoot || "tmp/").replace(/[\\/]+$/, "") + "/themes";
 
     var themesSequenceIndex = 0;
     var themesSequence = [];
@@ -85,8 +85,8 @@ var Theme = function() {
 };
 
 exports.themes = {
-    sequence: function() {
-        return Theme();
+    sequence: function(tmpRoot) {
+        return Theme(tmpRoot);
     }
 };
 

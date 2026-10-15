@@ -263,6 +263,15 @@
             }
         },
         "WYSIWYG": {
+            "LAYOUT": {
+                "TITLE": "Alinhamento de texto e mídias",
+                "LEFT": "Esquerda",
+                "CENTER": "Centro",
+                "RIGHT": "Direita",
+                "SAME_ROW": "Mesma linha da mídia anterior",
+                "NEW_LINE": "Nova linha após a mídia",
+                "GAP": "Espaço entre mídias"
+            },
             "CODE_SNIPPET": "Pedaço de código",
             "DB_CLICK": "duplo clique para editar",
             "SELECT_LANGUAGE_PLACEHOLDER": "Selecione sua linguagem",
@@ -1409,6 +1418,21 @@
         }
     },
     "BACKLOG": {
+        "BULK": {
+            "DELETE_STORIES": "Excluir estórias",
+            "ADD_ASSIGNED": "Adicionar responsáveis",
+            "SET_STATUS": "Definir status",
+            "SELECTED": "{{count}} estórias selecionadas",
+            "WORKING": "Aplicando alterações…",
+            "RESULT": "{{success}} concluídas; {{failed}} falharam.",
+            "RETRY": "Tentar novamente as que falharam",
+            "DELETE_TITLE": "Excluir estórias selecionadas",
+            "DELETE_MESSAGE": "Excluir {{count}} estórias selecionadas? Esta ação não pode ser desfeita.",
+            "MOVE_TO_SPRINT": "Mover para sprint",
+            "BACK": "Voltar",
+            "LOADING": "Carregando sprints…",
+            "NO_SPRINTS": "Nenhuma sprint disponível."
+        },
         "PAGE_TITLE": "Backlog - {{projectName}}",
         "PAGE_DESCRIPTION": "O painel de backlog, com histórias de usuário e sprints do projeto {{projectName}}: {{projectDescription}}",
         "SECTION_NAME": "Scrum",

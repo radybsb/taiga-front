@@ -30,24 +30,33 @@ Wysiwyg = ($translate, $confirm, $storage, wysiwygService, animationFrame, tgLoa
         textEditor = null
         pageAttachments = $attachmentsFullService.attachments.toJS()
         editorLinks = []
+        stopVideoObserver = wysiwygService.observeEditorVideos($el[0])
+        $scope.$on '$destroy', ->
+            stopVideoObserver()
+            $el.off('.wysiwygRead')
 
 
         linksEvents = () ->
             initialPos = null
 
-            $el.on 'mousedown', '.js-wysiwyg-html', (e) =>
+            $el.off('.wysiwygRead')
+            $el.on 'mousedown.wysiwygRead', '.js-wysiwyg-html', (e) =>
                 initialPos = {x: e.clientX, y: e.clientY}
 
-            $el.on 'click', '.js-wysiwyg-html', (e) =>
+            $el.on 'click.wysiwygRead', '.js-wysiwyg-html', (e) =>
+                # O player e seus controles não devem abrir a edição.
+                return if $(e.target).closest('.inline-video, video').length
+
+                return unless initialPos
+
                 diffX = Math.abs(e.clientX - initialPos.x)
                 diffY = Math.abs(e.clientY - initialPos.y)
 
                 initialPos = null
 
-                if diffX > 10 || diffY > 10
-                    return
+                return if diffX > 10 || diffY > 10
 
-                if e.target.tagName != 'A' && e.target.parentElement.tagName != 'A'
+                unless $(e.target).closest('a').length
                     $scope.$applyAsync () => $scope.setEditMode(true)
 
             editorLinks = textEditor.querySelectorAll('a[target="_blank"]:not(.link-event)')
@@ -98,7 +107,8 @@ Wysiwyg = ($translate, $confirm, $storage, wysiwygService, animationFrame, tgLoa
             setHtmlEditor(text)
             textEditor.mode = $scope.mode
             textEditor.lan = $translate.preferredLanguage()
-            textEditor.uploadFunction = $scope.onUploadFile
+            textEditor.uploadFunction = (file, callback) ->
+                wysiwygService.uploadEditorFile($scope.onUploadFile, file, callback)
             textEditor.members = $scope.project.members.map (member) =>
                 return Object.assign(member, {
                     fullNameDisplay: member.full_name_display
@@ -144,6 +154,8 @@ Wysiwyg = ($translate, $confirm, $storage, wysiwygService, animationFrame, tgLoa
 
         $scope.save = (e) ->
             e.preventDefault() if e
+            # Include the last layout/content change even when Save follows it immediately.
+            throttleChange.flush()
 
             setHtmlEditor($scope.markdown)
 

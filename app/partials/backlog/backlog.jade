@@ -89,20 +89,7 @@ div.wrapper(tg-backlog, ng-controller="BacklogController as ctrl",
                                     )
 
                             .backlog-table-options-end
-                                button.btn-filter.move-to-current-sprint.move-to-sprint.e2e-move-to-sprint(
-                                    ng-if="currentSprint"
-                                    title="{{'BACKLOG.MOVE_US_TO_CURRENT_SPRINT' | translate}}"
-                                    id="move-to-current-sprint"
-                                )
-                                    span.text(translate="BACKLOG.MOVE_US_TO_CURRENT_SPRINT")
-                                    tg-svg(svg-icon="icon-add-to-sprint")
-                                button.btn-filter.move-to-latest-sprint.move-to-sprint.e2e-move-to-sprint(
-                                    ng-if="!currentSprint"
-                                    title="{{'BACKLOG.MOVE_US_TO_LATEST_SPRINT' | translate}}"
-                                    id="move-to-latest-sprint"
-                                )
-                                    span.text(translate="BACKLOG.MOVE_US_TO_LATEST_SPRINT")
-                                    tg-svg(svg-icon="icon-add-to-sprint")
+                                div(tg-backlog-bulk-options)
 
                                 button.btn-filter.active.velocity-forecasting-btn.ng-animate-disabled.e2e-velocity-forecasting(
                                     ng-if="userstories.length && ctrl.displayVelocity "
@@ -200,3 +187,5 @@ div.wrapper(tg-backlog, ng-controller="BacklogController as ctrl",
 
     div.lightbox.lightbox-sprint-add-edit(tg-lb-create-edit-sprint)
         include ../includes/modules/lightbox-sprint-add-edit
+
+    div.lightbox.lightbox-relate-to-epic(ng-if="project && project.is_epics_activated" tg-lb-relatetoepic)

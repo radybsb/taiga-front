@@ -43,7 +43,15 @@ var argv = require('minimist')(process.argv.slice(2));
 
 var utils = require("./gulp-utils");
 
-var themes = utils.themes.sequence();
+var development = require('./gulp-development');
+var build = development.buildConfig(__dirname, argv);
+var version = build.version;
+var isDeploy = build.deploy;
+if (isDeploy && build.isolated) {
+    console.log('Validation build isolated from development: ' + build.dist);
+}
+
+var themes = utils.themes.sequence(build.tmp);
 
 if (argv.theme) {
     themes.set(argv.theme);
@@ -53,7 +61,7 @@ const availableThemes = JSON.stringify(themes.availableThemes.map((theme) => {
     return theme.name;
 }));
 
-var version = "v-" + Date.now();
+
 
 // userpilot config
 var userpilotToken = process.env.USERPILOT_TOKEN || null;
@@ -62,9 +70,9 @@ var disableRobots = process.env.DISABLE_ROBOTS || false;
 
 var paths = {};
 paths.app = "app/";
-paths.dist = "dist/";
+paths.dist = build.dist;
 paths.distVersion = paths.dist + version + "/";
-paths.tmp = "tmp/";
+paths.tmp = build.tmp;
 paths.extras = "extras/";
 paths.modules = "node_modules/";
 
@@ -211,15 +219,13 @@ paths.libs.forEach(function(file) {
     }
 });
 
-var isDeploy = argv["_"].indexOf("deploy") !== -1;
-
 gulp.task("clear-sass-cache", function(done) {
     delete cached.caches["sass"];
     done();
 });
 
 gulp.task("clear", gulp.series("clear-sass-cache", function(done) {
-    cache.clearAll();
+    if (!build.isolated) { cache.clearAll(); }
     done();
 }));
 
@@ -662,45 +668,21 @@ gulp.task("copy", gulp.parallel([
 ]));
 
 gulp.task("delete-old-version", function() {
+    development.assertCleanAllowed(__dirname, paths.dist);
     return del(paths.dist + "v-*");
 });
 
 gulp.task("delete-tmp", function() {
+    development.assertCleanAllowed(__dirname, paths.tmp);
     return del(paths.tmp);
 });
 
 gulp.task("express", function(cb) {
-    var express = require("express");
-    var compression = require('compression');
-
-    var app = express();
-
-    app.use(compression()); //gzip
-
-    app.use("/" + version + "/js", express.static(__dirname + "/dist/" + version + "/js"));
-    app.use("/" + version + "/styles", express.static(__dirname + "/dist/" + version + "/styles"));
-    app.use("/" + version + "/images", express.static(__dirname + "/dist/" + version + "/images"));
-    app.use("/" + version + "/emojis", express.static(__dirname + "/dist/" + version + "/emojis"));
-    app.use("/" + version + "/svg", express.static(__dirname + "/dist/" + version + "/svg"));
-    app.use("/" + version + "/partials", express.static(__dirname + "/dist/" + version + "/partials"));
-    app.use("/" + version + "/fonts", express.static(__dirname + "/dist/" + version + "/fonts"));
-    app.use("/" + version + "/locales", express.static(__dirname + "/dist/" + version + "/locales"));
-    app.use("/" + version + "/maps", express.static(__dirname + "/dist/" + version + "/maps"));
-    app.use("/" + version + "/ckeditor-translations", express.static(__dirname + "/dist/" + version + "/ckeditor-translations"));
-    app.use("/" + version + "/highlightjs-languages", express.static(__dirname + "/dist/" + version + "/highlightjs-languages"));
-    app.use("/plugins", express.static(__dirname + "/dist/plugins"));
-    app.use("/conf.json", express.static(__dirname + "/dist/conf.json"));
-    app.use(require('connect-livereload')({
-        port: 35729
-    }));
-
-    app.all("/*", function(req, res, next) {
-        //Just send the index.html for other files to support HTML5Mode
-        res.sendFile("index.html", {root: __dirname + "/dist/"});
-    });
-
-    app.listen(9001);
-    cb();
+    var app = development.createApp(path.resolve(__dirname, paths.dist));
+    app.listen(9001, function() {
+        development.markServer(build.marker, version);
+        cb();
+    }).on('error', cb);
 });
 
 //Rerun the task when a file changes
@@ -744,10 +726,9 @@ gulp.task("default", gulp.series(
         "app-watch",
         "jslibs-watch",
         "jade-deploy",
-        "elements",
-        "express",
-        "watch"
-    ))
+        "elements"
+    ),
+    gulp.parallel("express", "watch"))
 );
 
 gulp.task("unused-css", gulp.series("default", function() {

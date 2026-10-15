@@ -1284,3 +1284,114 @@
         }
     }
 }
+
+// Dialog panels retain the existing lightbox backdrop and close lifecycle.
+.lightbox.lightbox-dialog {
+    background: rgba($color-black900, .45);
+    padding: 1rem;
+
+    .lightbox-panel {
+        background: $white;
+        border-radius: .5rem;
+        box-shadow: 0 .5rem 2rem rgba($color-black900, .2);
+        max-height: calc(100vh - 2rem);
+        max-width: var(--lightbox-width, 44rem);
+        min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 3rem 2rem 2rem;
+        position: relative;
+        width: 100%;
+
+        > form,
+        > .form,
+        > div {
+            flex-basis: auto;
+            max-width: 100%;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .close {
+            left: auto;
+            right: .75rem;
+            top: .75rem;
+        }
+    }
+
+    &.lightbox-generic-delete,
+    &.lightbox-generic-ask,
+    &.lightbox-generic-success,
+    &.lightbox-generic-error,
+    &.lightbox-block:not(tg-attachments-preview) {
+        --lightbox-width: 32rem;
+    }
+
+    &.lightbox-set-due-date {
+        --lightbox-width: 38rem;
+    }
+
+    @media (max-width: 600px) {
+        padding: .5rem;
+
+        .lightbox-panel {
+            max-height: calc(100vh - 1rem);
+            padding: 3rem 1rem 1rem;
+        }
+    }
+}
+
+tg-attachments-preview.lightbox.lightbox-dialog {
+    --lightbox-width: 72rem;
+
+    .attachment-preview-container {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+    }
+
+    img,
+    video {
+        max-height: calc(100vh - 10rem);
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .previous {
+        left: .5rem;
+    }
+
+    .next {
+        right: .5rem;
+    }
+}
+
+// Accommodate the story form and its ticket-data sidebar inside the dialog.
+.lightbox.lightbox-dialog.lightbox-create-edit {
+    --lightbox-width: 64rem;
+
+    .lightbox-panel .form-wrapper {
+        max-width: 100%;
+        width: 100%;
+
+        > .main {
+            flex: 1 1 0;
+            min-width: 0;
+            width: auto;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .lightbox-panel .form-wrapper {
+            flex-direction: column;
+
+            > .sidebar {
+                flex-basis: auto;
+                margin-left: 0;
+                min-width: 0;
+                padding-left: 0;
+                width: 100%;
+            }
+        }
+    }
+}

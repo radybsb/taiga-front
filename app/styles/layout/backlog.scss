@@ -43,7 +43,8 @@
     height: 115px;
     position: sticky;
     top: 0;
-    z-index: $first-layer;
+    // Keep toolbar dropdowns above the sticky column header.
+    z-index: $second-layer;
 }
 
 .backlog-menu {

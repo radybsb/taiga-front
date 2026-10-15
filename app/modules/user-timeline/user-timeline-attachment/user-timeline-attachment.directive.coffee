@@ -7,26 +7,27 @@
 ###
 
 UserTimelineAttachmentDirective = (template, $compile) ->
-    validFileExtensions = [".jpg", ".jpeg", ".bmp", ".gif", ".png"]
-
-    isImage = (url) ->
-        url = url.toLowerCase()
-
-        return _.some validFileExtensions, (extension) ->
-            return url.indexOf(extension, url - extension.length) != -1
+    # Ignore signed URL parameters when identifying the attachment format.
+    extensionOf = (value) ->
+        path = (value || '').split(/[?#]/)[0]
+        return path.toLowerCase().match(/\.[a-z0-9]+$/)?[0]
 
     link = (scope, el) ->
-        is_image = isImage(scope.attachment.get('url'))
-
-        if is_image
-            templateHtml = template.get("user-timeline/user-timeline-attachment/user-timeline-attachment-image.html")
-        else
-            templateHtml = template.get("user-timeline/user-timeline-attachment/user-timeline-attachment.html")
+        extension = extensionOf(scope.attachment.get('filename')) || extensionOf(scope.attachment.get('url'))
+        kind = if extension in ['.jpg', '.jpeg', '.bmp', '.gif', '.png', '.webp'] then '-image' else ''
+        kind = '-video' if extension == '.mp4'
+        templateHtml = template.get("user-timeline/user-timeline-attachment/user-timeline-attachment#{kind}.html")
 
         el.html(templateHtml)
         $compile(el.contents())(scope)
 
         el.find("img").error () -> @.remove()
+
+        # Keep playback in the timeline and omit the browser's download menu.
+        videos = el.find("video")
+        preventContextMenu = (event) -> event.preventDefault()
+        videos.on("contextmenu", preventContextMenu)
+        scope.$on "$destroy", -> videos.off("contextmenu", preventContextMenu)
 
     return {
         link: link

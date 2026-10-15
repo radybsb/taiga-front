@@ -47,6 +47,15 @@ tg-wysiwyg {
             }
         }
     }
+    // Keep all content selection/resize chrome below toolbar menus.
+    .ck-editor__main {
+        position: relative;
+        z-index: 0;
+    }
+    .ck-editor__top {
+        position: relative;
+        z-index: 1;
+    }
     .ck.ck-editor__main > .ck-editor__editable {
         padding-bottom: 3rem;
     }
@@ -307,4 +316,104 @@ tg-html-editor .ck-content {
 tg-custom-field-edit-wysiwyg {
     display: flex;
     max-width: 100%;
+}
+
+// MP4 attachments keep their link representation in saved descriptions.
+// These players are presentation-only in both read and editing views.
+.inline-video {
+    display: inline-block;
+    margin: .75rem 0;
+    max-width: 100%;
+    vertical-align: top;
+
+    video {
+        background: $color-black900;
+        display: block;
+        max-height: 28rem;
+        max-width: 40rem;
+        width: 100%;
+    }
+
+    > a {
+        display: block;
+        margin-top: .25rem;
+        overflow-wrap: anywhere;
+    }
+}
+
+.taiga-media-resize {
+    border: 1px solid $color-link-primary;
+    pointer-events: none;
+    position: absolute;
+    z-index: 10000;
+
+    &[hidden] { display: none; }
+
+    .taiga-media-resize-handle {
+        background: $color-white;
+        border: 2px solid $color-link-primary;
+        height: 12px;
+        pointer-events: auto;
+        position: absolute;
+        touch-action: none;
+        width: 12px;
+
+        &.nw,
+        &.ne { top: -6px; }
+        &.sw,
+        &.se { bottom: -6px; }
+        &.nw,
+        &.sw { left: -6px; }
+        &.ne,
+        &.se { right: -6px; }
+        &.nw,
+        &.se { cursor: nwse-resize; }
+        &.ne,
+        &.sw { cursor: nesw-resize; }
+    }
+}
+
+
+.ck-content,
+.wysiwyg {
+    .taiga-align-left { text-align: left; }
+    .taiga-align-center { text-align: center; }
+    .taiga-align-right { text-align: right; }
+
+    .taiga-media-row {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: flex-start;
+        margin: 1rem 0;
+        max-width: 100%;
+
+        &.taiga-align-center { justify-content: center; }
+        &.taiga-align-right { justify-content: flex-end; }
+
+        @each $gap in 0, 8, 16, 24, 32, 40, 48, 56, 64, 72 {
+            &.taiga-gap-#{$gap} { gap: #{$gap}px; }
+        }
+
+        > .image,
+        > .inline-video,
+        > img {
+            flex: 0 1 auto;
+            margin: 0;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        > .image {
+            display: block;
+            width: fit-content;
+
+            img { margin: 0; }
+        }
+    }
+}
+
+tg-wysiwyg .edit-mode .ck-content .taiga-media-row > .image {
+    margin: 0;
 }

@@ -32,6 +32,12 @@
             max-height: 640px;
             max-width: 640px;
         }
+        .activity-video-attachment video {
+            display: block;
+            max-height: 640px;
+            max-width: 100%;
+            width: 640px;
+        }
         .activity-info {
             align-items: center;
             color: $gray-light;

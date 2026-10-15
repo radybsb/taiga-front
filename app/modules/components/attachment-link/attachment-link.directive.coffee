@@ -11,7 +11,7 @@ AttachmentLinkDirective = ($parse, attachmentsPreviewService, lightboxService) -
         attachment = $parse(attrs.tgAttachmentLink)(scope)
 
         el.on "click", (event) ->
-            if taiga.isImage(attachment.getIn(['file', 'name']))
+            if taiga.isImage(attachment.getIn(['file', 'name'])) || taiga.isVideo(attachment.getIn(['file', 'name']))
                 event.preventDefault()
 
                 scope.$apply ->

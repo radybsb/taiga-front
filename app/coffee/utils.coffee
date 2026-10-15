@@ -206,6 +206,9 @@ _.mixin
 isImage = (name) ->
     return name.match(/\.(jpe?g|png|gif|gifv|svg|psd|webp)/i) != null
 
+isVideo = (name) ->
+    return !!name && /\.mp4$/i.test(name)
+
 isEmail = (name) ->
     return name? and name.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/) != null
 
@@ -298,6 +301,7 @@ taiga.stripTags = stripTags
 taiga.replaceTags = replaceTags
 taiga.defineImmutableProperty = defineImmutableProperty
 taiga.isImage = isImage
+taiga.isVideo = isVideo
 taiga.isEmail = isEmail
 taiga.isPdf = isPdf
 taiga.patch = patch

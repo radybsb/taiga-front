@@ -10,6 +10,7 @@ module = angular.module('taigaCommon')
 
 TagLineCommonDirective = () ->
     link = (scope, el, attr, ctrl) ->
+        ctrl.displayTagInput() if !_.isUndefined(attr.autoOpen)
         if !_.isUndefined(attr.disableColorSelection)
             ctrl.disableColorSelection = true
 

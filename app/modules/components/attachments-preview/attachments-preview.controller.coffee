@@ -18,9 +18,12 @@ class AttachmentsPreviewController
 
             return @.getCurrent()
 
+    isVideo: () ->
+        return taiga.isVideo(@.getCurrent()?.get('name'))
+
     hasPagination: () ->
         images = @.attachments.filter (attachment) =>
-            return taiga.isImage(attachment.getIn(['file', 'name']))
+            return taiga.isImage(attachment.getIn(['file', 'name'])) || taiga.isVideo(attachment.getIn(['file', 'name']))
 
         return images.size > 1
 
@@ -42,25 +45,25 @@ class AttachmentsPreviewController
         attachmentIndex = @.getIndex()
 
         image = @.attachments.slice(attachmentIndex + 1).find (attachment) ->
-                return taiga.isImage(attachment.getIn(['file', 'name']))
+                return taiga.isImage(attachment.getIn(['file', 'name'])) || taiga.isVideo(attachment.getIn(['file', 'name']))
 
         if !image
             image = @.attachments.find (attachment) ->
-                return taiga.isImage(attachment.getIn(['file', 'name']))
+                return taiga.isImage(attachment.getIn(['file', 'name'])) || taiga.isVideo(attachment.getIn(['file', 'name']))
 
 
-        @attachmentsPreviewService.fileId = image.getIn(['file', 'id'])
+        @attachmentsPreviewService.fileId = image.getIn(['file', 'id']) if image
 
     previous: () ->
         attachmentIndex = @.getIndex()
 
         image = @.attachments.slice(0, attachmentIndex).findLast (attachment) ->
-                return taiga.isImage(attachment.getIn(['file', 'name']))
+                return taiga.isImage(attachment.getIn(['file', 'name'])) || taiga.isVideo(attachment.getIn(['file', 'name']))
 
         if !image
             image = @.attachments.findLast (attachment) ->
-                return taiga.isImage(attachment.getIn(['file', 'name']))
+                return taiga.isImage(attachment.getIn(['file', 'name'])) || taiga.isVideo(attachment.getIn(['file', 'name']))
 
-        @attachmentsPreviewService.fileId = image.getIn(['file', 'id'])
+        @attachmentsPreviewService.fileId = image.getIn(['file', 'id']) if image
 
 angular.module('taigaComponents').controller('AttachmentsPreview', AttachmentsPreviewController)

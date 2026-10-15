@@ -30,6 +30,19 @@ class LightboxService extends taiga.Service
             $el = $($el)
         defered = @q.defer()
 
+        # Keep the full-screen backdrop, but size a separate dialog to content.
+        # Move existing nodes (including Angular anchors) without recompiling.
+        if !$el.children('.lightbox-panel').length
+            panel = $('<div class="lightbox-panel">')
+            panel.append($el.contents())
+            $el.append(panel)
+        $el.addClass('lightbox-dialog')
+
+        # Only the backdrop closes the dialog; clicks in its panel bubble safely.
+        $el.off('click.lightbox-backdrop').on 'click.lightbox-backdrop', (event) =>
+            if event.target == $el[0] && $el.hasClass('open') && !$el.hasClass('close-started')
+                @rootScope.$applyAsync => @.close($el)
+
         lightboxContent = $el.children().not(".close")
         lightboxContent.hide()
 
@@ -997,9 +1010,12 @@ tgResources, $tgResources, $epicsService, tgAnalytics) ->
                 $rootScope.$broadcast("related-epics:changed", us)
                 lightboxService.close($el)
 
-            usId = us.id
-            tgResources.epics.addRelatedUserstory(selectedEpicId, usId).then(
-                onSuccess, onError)
+            if us.onLink
+                us.onLink(selectedEpicId).then(onSuccess, onError)
+            else
+                usId = us.id
+                tgResources.epics.addRelatedUserstory(selectedEpicId, usId).then(
+                    onSuccess, onError)
 
         $scope.createEpic = (selectedProjectId, epicSubject) ->
             return if not newEpicForm.validate()
@@ -1020,8 +1036,11 @@ tgResources, $tgResources, $epicsService, tgAnalytics) ->
 
             onCreateEpic = (epic) ->
                 epicId = epic.get('id')
-                usId = us.id
-                tgResources.epics.addRelatedUserstory(epicId, usId).then(onSuccess, onError)
+                if us.onLink
+                    us.onLink(epicId).then(onSuccess, onError)
+                else
+                    usId = us.id
+                    tgResources.epics.addRelatedUserstory(epicId, usId).then(onSuccess, onError)
 
             $epicsService.createEpic(
                 {subject: epicSubject}, null, selectedProjectId).then(onCreateEpic, onError)
@@ -1034,5 +1053,4 @@ tgResources, $tgResources, $epicsService, tgAnalytics) ->
 module.directive("tgLbRelatetoepic", [
     "$rootScope", "$tgConfirm", "lightboxService", "tgCurrentUserService", "tgResources",
     "$tgResources", "tgEpicsService", "$tgAnalytics", RelateToEpicLightboxDirective])
-
 

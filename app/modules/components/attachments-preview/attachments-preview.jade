@@ -16,9 +16,18 @@
         )
             tg-svg(svg-icon="icon-arrow-left")
 
-        a(href="{{vm.current.get('url')}}", title="{{vm.current.get('description')}}", target="_blank", download="{{vm.current.get('name')}}")
+        a(ng-if="!vm.isVideo()", href="{{vm.current.get('url')}}", title="{{vm.current.get('description')}}", target="_blank", download="{{vm.current.get('name')}}")
             tg-preload-image(preload-src="{{vm.current.get('preview_url') || vm.getCurrent().get('url')}}")
                  img(ng-src="{{vm.current.get('preview_url') || vm.getCurrent().get('url')}}")
+
+        video(
+            ng-if="vm.isVideo()"
+            ng-src="{{vm.current.get('url')}}"
+            controls
+            playsinline
+            preload="metadata"
+            aria-label="{{vm.current.get('name')}}"
+        )
 
         a.next(
             href="#",

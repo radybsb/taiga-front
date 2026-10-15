@@ -9,6 +9,8 @@
 AttachmentPreviewLightboxDirective = (lightboxService, attachmentsPreviewService) ->
     link = ($scope, el, attrs, ctrl) ->
         $(document.body).on "keydown.image-preview", (e) ->
+            # Native video controls use arrow keys for seeking/volume.
+            return if ctrl.isVideo()
             if attachmentsPreviewService.fileId
                 if e.keyCode == 39
                     ctrl.next()
@@ -17,7 +19,16 @@ AttachmentPreviewLightboxDirective = (lightboxService, attachmentsPreviewService
 
             $scope.$digest()
 
+        stopVideos = ->
+            el[0].querySelectorAll('video').forEach (video) -> video.pause()
+
+        $scope.$on 'lightbox:closed', ->
+            if el.hasClass('close-started')
+                stopVideos()
+                attachmentsPreviewService.fileId = null
+
         $scope.$on '$destroy', () ->
+            stopVideos()
             $(document.body).off('.image-preview')
 
     return {

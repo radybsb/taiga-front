@@ -22,6 +22,7 @@ BindCode = ($sce, $parse, $compile, wysiwygService) ->
             window._extraValidAttrs = {checked: true}
 
             element.html($sce.getTrustedHtml(html) || '')
+            wysiwygService.appendVideoPlayers(element[0])
             element[0].querySelectorAll('pre code').forEach (block) =>
                 blockClasses = block.className + ' ';
                 blockClasses += if block.parentNode then block.parentNode.className else ''
@@ -59,7 +60,6 @@ BindCode = ($sce, $parse, $compile, wysiwygService) ->
                 wysiwygService.refreshAttachmentURL(html).then (html) =>
                     render(element, html)
 
-                render(element, html)
   }
 
 angular.module("taigaComponents")

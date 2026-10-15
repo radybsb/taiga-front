@@ -763,19 +763,9 @@ BacklogDirective = ($repo, $rootscope, $translate, $rs) ->
         $scope.$on("sprint:us:moved", reloadDoomLine)
         $scope.$watch("stats", reloadDoomLine)
 
-    ## Move to current sprint link
+    ## Selection and sprint forecasting toolbar
 
     linkToolbar = ($scope, $el, $attrs, $ctrl) ->
-        getUsToMove = () ->
-            # Calculating the us's to be modified
-            ussDom = $el.find(".backlog-table-body input:checkbox:checked")
-
-            return _.map ussDom, (item) ->
-                item =  $(item).closest('.tg-scope')
-                itemScope = item.scope()
-                itemScope.us.milestone = $scope.sprints[0].id
-                return itemScope.us
-
         moveUssToSprint = (selectedUss, sprint) ->
             ussCurrent = _($scope.userstories)
 
@@ -796,7 +786,7 @@ BacklogDirective = ($repo, $rootscope, $translate, $rs) ->
                     us_id: us.id
                     order: us.sprint_order
                 }
-            $rs.userstories.bulkUpdateMilestone($scope.project.id, $scope.sprints[0].id, data).then =>
+            $rs.userstories.bulkUpdateMilestone($scope.project.id, sprint.id, data).then =>
                 $ctrl.loadSprints()
                 $ctrl.loadProjectStats()
                 $ctrl.toggleVelocityForecasting()
@@ -808,9 +798,6 @@ BacklogDirective = ($repo, $rootscope, $translate, $rs) ->
             sprint = if $scope.currentSprint then $scope.currentSprint else $scope.sprints[0]
 
             moveUssToSprint(selectedUss, sprint)
-
-        moveToLatestSprint = (selectedUss) ->
-            moveUssToSprint(selectedUss, $scope.sprints[0])
 
         $scope.$on "sprintform:create:success:callback", (e, ussToMove) ->
             if ussToMove
@@ -825,7 +812,7 @@ BacklogDirective = ($repo, $rootscope, $translate, $rs) ->
             moveToSprintDom = $el.find(".move-to-sprint")
             selectedUsDom = $el.find(".backlog-table-body input:checkbox:checked")
 
-            if selectedUsDom.length > 0 and $scope.sprints.length > 0
+            if selectedUsDom.length > 0
                 moveToSprintDom.css('display', 'flex')
             else
                 moveToSprintDom.hide()
@@ -836,7 +823,7 @@ BacklogDirective = ($repo, $rootscope, $translate, $rs) ->
 
             return true
 
-        # Enable move to current sprint only when there are selected us's
+        # Enable bulk options whenever there are selected user stories
         $el.on "change", ".backlog-table-body input:checkbox", (event) ->
             # check elements between the last two if shift is pressed
             if lastChecked && shiftPressed
@@ -858,16 +845,6 @@ BacklogDirective = ($repo, $rootscope, $translate, $rs) ->
             target = angular.element(event.currentTarget)
             target.closest(".us-item-row").toggleClass('is-checked')
             checkSelected(target)
-
-        $el.on "click", "#move-to-latest-sprint", (event) =>
-            ussToMove = getUsToMove()
-
-            $scope.$apply(_.partial(moveToLatestSprint, ussToMove))
-
-        $el.on "click", "#move-to-current-sprint", (event) =>
-            ussToMove = getUsToMove()
-
-            $scope.$apply(_.partial(moveToCurrentSprint, ussToMove))
 
         $el.on "change", "#show-tags > input", (event) ->
             event.preventDefault()

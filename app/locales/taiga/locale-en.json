@@ -264,6 +264,15 @@
             }
         },
         "WYSIWYG": {
+            "LAYOUT": {
+                "TITLE": "Text and media layout",
+                "LEFT": "Left",
+                "CENTER": "Center",
+                "RIGHT": "Right",
+                "SAME_ROW": "Same row as previous media",
+                "NEW_LINE": "New line after media",
+                "GAP": "Space between media"
+            },
             "CODE_SNIPPET": "Code Snippet",
             "DB_CLICK": "double click to edit",
             "SELECT_LANGUAGE_PLACEHOLDER": "Select Language",
@@ -1407,6 +1416,21 @@
         }
     },
     "BACKLOG": {
+        "BULK": {
+            "DELETE_STORIES": "Delete Stories",
+            "ADD_ASSIGNED": "Add assigned",
+            "SET_STATUS": "Set status",
+            "SELECTED": "{{count}} user stories selected",
+            "WORKING": "Applying changes…",
+            "RESULT": "{{success}} succeeded; {{failed}} failed.",
+            "RETRY": "Retry failed stories",
+            "DELETE_TITLE": "Delete selected user stories",
+            "DELETE_MESSAGE": "Delete {{count}} selected user stories? This action cannot be undone.",
+            "MOVE_TO_SPRINT": "Move to Sprint",
+            "BACK": "Back",
+            "LOADING": "Loading sprints…",
+            "NO_SPRINTS": "No sprints available."
+        },
         "PAGE_TITLE": "Backlog - {{projectName}}",
         "PAGE_DESCRIPTION": "The backlog panel, with user stories and sprints of the project {{projectName}}: {{projectDescription}}",
         "SECTION_NAME": "Scrum",

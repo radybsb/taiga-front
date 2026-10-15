@@ -63,6 +63,22 @@ npm start
 
 And go in your browser to: http://localhost:9001/
 
+Keep `npm start` running while editing source files; its watcher rebuilds them.
+The server starts after the initial build is ready. Restart it when changing the
+Gulp/server configuration or dependencies, rather than after ordinary UI changes.
+
+For a separate validation build, use:
+
+```sh
+npx gulp deploy --dist dist-validation --tmp tmp-validation
+```
+
+These directories keep validation artifacts separate from the running development
+server. `gulp deploy` also selects them automatically when it detects an active
+server started by this version of the development tooling. Standalone incremental
+tasks reuse the active development version instead of changing asset URLs.
+
+
 #### E2E test
 
 If you want to run e2e tests

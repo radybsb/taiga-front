@@ -9,7 +9,12 @@
 module = angular.module('taigaEpics')
 
 StoryRowDirective = () ->
+    link = (scope, el, attrs, ctrl) ->
+        scope.$on 'detail-popup:updated', (event, detail) ->
+            if detail.type == 'us' && ctrl.story.get('id') == detail.item.id
+                ctrl.story = ctrl.story.merge(Immutable.fromJS(detail.item._attrs))
     return {
+        link: link,
         templateUrl:"epics/dashboard/story-row/story-row.html",
         controller: "StoryRowCtrl",
         controllerAs: "vm",

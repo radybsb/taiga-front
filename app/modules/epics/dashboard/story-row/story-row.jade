@@ -14,6 +14,7 @@
             - var hash = "#";
             a(
                 tg-nav="project-userstories-detail:project=vm.story.getIn(['project_extra_info', 'slug']),ref=vm.story.get('ref')"
+                tg-detail-popup-link
                 ng-attr-title="{{::vm.story.get('subject')}}"
             )
                 span.ref(ng-bind-html="'#'+vm.story.get('ref')")

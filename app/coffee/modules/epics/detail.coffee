@@ -56,6 +56,7 @@ class EpicDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         @.initializeEventHandlers()
 
         promise = @.loadInitialData()
+        @scope.detailLoad = promise if @scope.detailPopup
 
         # On Success
         promise.then =>
@@ -66,6 +67,7 @@ class EpicDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         promise.then null, @.onInitialDataError.bind(@)
 
     _setMeta: ->
+        return if @scope.detailPopup
         title = @translate.instant("EPIC.PAGE_TITLE", {
             epicRef: "##{@scope.epic.ref}"
             epicSubject: @scope.epic.subject
@@ -91,8 +93,9 @@ class EpicDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
             @rootscope.$broadcast("object:updated")
 
     initializeOnDeleteGoToUrl: ->
-       ctx = {project: @scope.project.slug}
-       @scope.onDeleteGoToUrl = @navUrls.resolve("project-epics", ctx)
+        return if @scope.detailPopup
+        ctx = {project: @scope.project.slug}
+        @scope.onDeleteGoToUrl = @navUrls.resolve("project-epics", ctx)
 
     loadProject: ->
         project = @projectService.project.toJS()

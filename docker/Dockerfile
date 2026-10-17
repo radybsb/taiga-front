@@ -1,47 +1,32 @@
-# This source code is licensed under the terms of the
-# GNU Affero General Public License found in the LICENSE file in
-# the root directory of this source tree.
-#
-# Copyright (c) 2021-present Kaleidos INC
+# Build customized source, not taiga-front-dist from upstream.
+# Node 16 is confined to the builder for compatibility with node-sass 8.
+ARG NODE_IMAGE=node:16.20.2-bullseye
+ARG NGINX_IMAGE=nginx:stable-alpine
+FROM ${NODE_IMAGE} AS build
+WORKDIR /src
+RUN git --version && python3 --version && make --version \
+    && git config --global url."https://github.com/".insteadOf ssh://git@github.com/ \
+    && git config --global --add url."https://github.com/".insteadOf git@github.com:
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
+COPY . .
+ENV DISABLE_ROBOTS=true
+RUN ./node_modules/.bin/gulp deploy --dist /build/dist --tmp /build/tmp \
+    && node docker/verify-build.cjs /build/dist \
+    && rm /build/dist/conf.json
 
-FROM nginx:1.23-alpine
-LABEL maintainer="support@taiga.io"
-
+FROM ${NGINX_IMAGE} AS runtime
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.title="Hakoon Taiga frontend" \
+      org.opencontainers.image.revision=${VCS_REF}
+RUN apk add --no-cache bash jq \
+    && rm -rf /usr/share/nginx/html/*
+COPY --from=build /build/dist/ /usr/share/nginx/html/
 COPY docker/default.conf /etc/nginx/conf.d/default.conf
-COPY docker/conf.json.template /
+COPY docker/frontend-locations.conf /etc/nginx/snippets/frontend-locations.conf
+COPY docker/conf.json.template /usr/share/nginx/html/conf.json.template
 COPY docker/config_env_subst.sh /docker-entrypoint.d/30_config_env_subst.sh
-
-RUN set -eux; \
-apk update; \
-    apk add --no-cache --virtual .build-deps \
-       subversion; \
-    apk add \
-       bash; \
-    # Install taiga-front core
-    wget https://github.com/taigaio/taiga-front-dist/archive/6.10.3.zip -O source.zip; \
-    unzip source.zip; \
-    mv /taiga-front-dist-6.10.3 /taiga; \
-    mv /conf.json.template taiga/dist/; \
-    chmod +x /docker-entrypoint.d/30_config_env_subst.sh; \
-    # Install taiga-front contribs
-    mkdir /taiga/dist/plugins; \
-    cd /taiga/dist/plugins; \
-    # Slack
-    wget https://github.com/taigaio/taiga-contrib-slack/archive/6.10.0.zip -O source.zip; \
-    unzip -j source.zip "taiga-contrib-slack-6.10.1/front/dist/*" -d slack; \
-    rm source.zip; \
-    # Github
-    wget http://github.com/taigaio/taiga-contrib-github-auth/archive/6.10.0.zip -O source.zip; \
-    unzip -j source.zip "taiga-contrib-github-auth-6.10.1/front/dist/*" -d github-auth; \
-    rm source.zip; \
-    # Gitlab
-    wget http://github.com/taigaio/taiga-contrib-gitlab-auth/archive/6.10.0.zip -O source.zip; \
-    unzip -j source.zip "taiga-contrib-gitlab-auth-6.10.1/front/dist/*" -d gitlab-auth; \
-    rm source.zip; \
-    cd /; \
-    # Remove unused dependencies
-    apk del --no-cache .build-deps; \
-    rm source.zip; \
-    # Ready for nginx
-    mv /taiga/dist/* /usr/share/nginx/html; \
-    rm -rf /taiga
+RUN chmod +x /docker-entrypoint.d/30_config_env_subst.sh
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1/healthz || exit 1
+EXPOSE 80

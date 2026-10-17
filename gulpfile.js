@@ -237,7 +237,7 @@ gulp.task("clear", gulp.series("clear-sass-cache", function(done) {
 
 gulp.task("jade", function() {
     return gulp.src(paths.jade)
-        .pipe(plumber())
+        .pipe(gulpif(!isDeploy, plumber()))
         .pipe(cached("jade"))
         .pipe(jade({
             pretty: true,
@@ -254,7 +254,7 @@ gulp.task("jade", function() {
 
 gulp.task("jade-inheritance", function() {
     return gulp.src(paths.jade)
-        .pipe(plumber())
+        .pipe(gulpif(!isDeploy, plumber()))
         .pipe(cached("jade"))
         .pipe(jadeInheritance({basedir: "./app/"}))
         .pipe(jade({
@@ -333,7 +333,7 @@ gulp.task("scss-lint", function(done) {
 gulp.task("sass-compile", function() {
     return gulp.src(paths.sass)
         .pipe(addsrc.append(themes.current.customScss))
-        .pipe(plumber())
+        .pipe(gulpif(!isDeploy, plumber()))
         .pipe(insert.prepend('@import "dependencies";'))
         .pipe(cached("sass"))
         .pipe(sass({
@@ -526,6 +526,7 @@ gulp.task("coffee", function() {
         .pipe(sourcemaps.init())
         .pipe(cache(coffee()))
         .on("error", function(err) {
+            if (isDeploy) { throw err; }
             console.log(err.toString());
             this.emit("end");
         })
@@ -552,14 +553,14 @@ gulp.task("moment-locales", function() {
 
 gulp.task("jslibs-watch", function() {
     return gulp.src([...paths.libs, paths.modules + "@highlightjs/cdn-assets/highlight.min.js"])
-        .pipe(plumber())
+        .pipe(gulpif(!isDeploy, plumber()))
         .pipe(concat("libs.js"))
         .pipe(gulp.dest(paths.distVersion + "js/"));
 });
 
 gulp.task("jslibs-deploy", function() {
     return gulp.src(paths.libs)
-        .pipe(plumber())
+        .pipe(gulpif(!isDeploy, plumber()))
         .pipe(sourcemaps.init())
         .pipe(concat("libs.js"))
         .pipe(uglify())

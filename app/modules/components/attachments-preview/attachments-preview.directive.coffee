@@ -8,16 +8,20 @@
 
 AttachmentPreviewLightboxDirective = (lightboxService, attachmentsPreviewService) ->
     link = ($scope, el, attrs, ctrl) ->
-        $(document.body).on "keydown.image-preview", (e) ->
-            # Native video controls use arrow keys for seeking/volume.
-            return if ctrl.isVideo()
-            if attachmentsPreviewService.fileId
-                if e.keyCode == 39
-                    ctrl.next()
-                else if e.keyCode == 37
-                    ctrl.previous()
-
-            $scope.$digest()
+        keydown = (e) ->
+            return unless el.hasClass('open') && !el.hasClass('close-started') && attachmentsPreviewService.fileId
+            return unless e.keyCode in [37, 39]
+            # Native video controls retarget their keyboard events to the video.
+            # Preserve seeking while the player has focus, even if the event
+            # is dispatched elsewhere; otherwise arrows navigate the carousel.
+            focused = document.activeElement
+            return if $(e.target).closest('video').length
+            return if el[0].contains(focused) && $(focused).closest('video').length
+            e.preventDefault()
+            $scope.$evalAsync ->
+                if e.keyCode == 39 then ctrl.next() else ctrl.previous()
+            return
+        $(document.body).on('keydown.image-preview', keydown)
 
         stopVideos = ->
             el[0].querySelectorAll('video').forEach (video) -> video.pause()
@@ -29,7 +33,7 @@ AttachmentPreviewLightboxDirective = (lightboxService, attachmentsPreviewService
 
         $scope.$on '$destroy', () ->
             stopVideos()
-            $(document.body).off('.image-preview')
+            $(document.body).off('keydown.image-preview', keydown)
 
     return {
         scope: {},

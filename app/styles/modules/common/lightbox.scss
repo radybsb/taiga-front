@@ -1395,3 +1395,61 @@ tg-attachments-preview.lightbox.lightbox-dialog {
         }
     }
 }
+
+.lightbox.lightbox-task-detail {
+    --lightbox-width: 82rem;
+
+    .task-popup-content > .wrapper {
+        display: flex;
+        min-height: 0;
+        padding: 0;
+
+        > .detail {
+            flex: 1;
+            min-width: 0;
+        }
+
+        > .ticket-data {
+            flex: 0 0 18rem;
+            margin-left: 1rem;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .task-popup-content > .wrapper {
+            flex-direction: column;
+
+            > .ticket-data {
+                flex-basis: auto;
+                margin-left: 0;
+                max-width: 100%;
+            }
+        }
+    }
+}
+
+.lightbox.lightbox-task-detail .detail-popup-body {
+    display: flex;
+    min-width: 0;
+    width: 100%;
+
+    > .detail {
+        flex: 1;
+        min-width: 0;
+    }
+
+    > .ticket-data {
+        flex: 0 0 18rem;
+        margin-left: 1rem;
+    }
+
+    @media (max-width: 900px) {
+        flex-direction: column;
+
+        > .ticket-data {
+            flex-basis: auto;
+            margin-left: 0;
+            max-width: 100%;
+        }
+    }
+}

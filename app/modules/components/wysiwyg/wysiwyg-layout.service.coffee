@@ -73,7 +73,8 @@ class WysiwygLayoutService
         editable = editor.ui.getEditableElement()
         # tg-text-editor has its own Angular converter, distinct from the one
         # exposed to Taiga through angularDataConversion().
-        component = editable.closest('tg-text-editor')?.ngElementStrategy?.componentRef?.instance
+        strategy = editable.closest('tg-text-editor')?.ngElementStrategy
+        component = (strategy?.componentRef || strategy?.strategy?.componentRef)?.instance
         @preserveConversion(component.dataConversionService) if component?.dataConversionService
         label = (key) => @translate?.instant('COMMON.WYSIWYG.LAYOUT.' + key) || key
         selectedMedia = null
@@ -240,6 +241,35 @@ class WysiwygLayoutService
             document.addEventListener('mousedown', outside)
             outsideListeners.push(outside)
             return dropdown
+        toolbar = editor.ui.view.toolbar
+        headingDropdown = Array.from(toolbar.items).find((view) -> view.element?.classList.contains('ck-heading-dropdown'))
+        if headingDropdown
+            headingDropdown.buttonView.unbind('label')
+            headingDropdown.buttonView.set({label: 'Tt', tooltip: editor.t('Choose heading')})
+
+        listButtons = []
+        for name in ['todoList', 'bulletedList', 'numberedList']
+            continue unless factory.has(name)
+            seed = factory.create(name)
+            item = Array.from(toolbar.items).find((view) -> view.label == seed.label)
+            if item
+                listButtons.push({view: item, index: toolbar.items.getIndex(item), name: name})
+            seed.destroy()
+        if listButtons.length
+            bullet = listButtons.find((item) -> item.name == 'bulletedList') || listButtons[0]
+            listDropdown = createDropdown(editor.t('Bulleted List'), bullet.view.icon)
+            listIndex = Math.min.apply(null, listButtons.map((item) -> item.index))
+            for entry in listButtons
+                toolbar.items.remove(entry.view)
+                entry.view.set('withText', true)
+                listDropdown.toolbarView.items.add(entry.view)
+                entry.view.on 'execute', ->
+                    listDropdown.isOpen = false
+                    editor.editing.view.focus()
+            listDropdown.bind('isEnabled').toMany(listButtons.map((entry) -> entry.view), 'isEnabled', (values...) -> values.some(Boolean))
+            toolbar.items.add(listDropdown, listIndex)
+            views.push(listDropdown)
+
         alignmentButtons = []
         nativeAlignment = editor.commands.get('alignment')
         alignmentDropdown = Array.from(editor.ui.view.toolbar.items).find((view) ->
@@ -298,7 +328,11 @@ class WysiwygLayoutService
                     alignmentDropdown.toolbarView.items.add(item)
                     alignmentButtons.push(item)
         joinButton = createButton(label('SAME_ROW'), icons.join, join)
-        editor.ui.view.toolbar.items.add(joinButton)
+        removeFormat = if factory.has('removeFormat') then factory.create('removeFormat') else null
+        removeButton = Array.from(toolbar.items).find((view) -> view.label == removeFormat?.label)
+        removeFormat?.destroy()
+        mediaIndex = if removeButton then toolbar.items.getIndex(removeButton) else toolbar.items.length
+        toolbar.items.add(joinButton, mediaIndex)
         views.push(joinButton)
         gapDropdown = createDropdown(label('GAP'), icons.gap)
         gapButtons = []
@@ -316,7 +350,7 @@ class WysiwygLayoutService
                 item._taigaGap = value
                 gapDropdown.toolbarView.items.add(item)
                 gapButtons.push(item)
-        editor.ui.view.toolbar.items.add(gapDropdown)
+        toolbar.items.add(gapDropdown, mediaIndex + 1)
         views.push(gapDropdown)
         update = ->
             media = mediaOf()

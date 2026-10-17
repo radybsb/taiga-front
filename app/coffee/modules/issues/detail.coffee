@@ -56,6 +56,7 @@ class IssueDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         @.initializeEventHandlers()
 
         promise = @.loadInitialData()
+        @scope.detailLoad = promise if @scope.detailPopup
 
         # On Success
         promise.then =>
@@ -66,6 +67,7 @@ class IssueDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         promise.then null, @.onInitialDataError.bind(@)
 
     _setMeta: ->
+        return if @scope.detailPopup
         title = @translate.instant("ISSUE.PAGE_TITLE", {
             issueRef: "##{@scope.issue.ref}"
             issueSubject: @scope.issue.subject
@@ -107,11 +109,12 @@ class IssueDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
                 @scope.sprint = null
 
     initializeOnDeleteGoToUrl: ->
-       ctx = {project: @scope.project.slug}
-       if @scope.project.is_issues_activated
-           @scope.onDeleteGoToUrl = @navUrls.resolve("project-issues", ctx)
-       else
-           @scope.onDeleteGoToUrl = @navUrls.resolve("project", ctx)
+        return if @scope.detailPopup
+        ctx = {project: @scope.project.slug}
+        if @scope.project.is_issues_activated
+            @scope.onDeleteGoToUrl = @navUrls.resolve("project-issues", ctx)
+        else
+            @scope.onDeleteGoToUrl = @navUrls.resolve("project", ctx)
 
     loadProject: ->
         project = @projectService.project.toJS()

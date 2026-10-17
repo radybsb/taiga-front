@@ -11,6 +11,9 @@ module = angular.module('taigaEpics')
 RelatedUserstoryRowDirective = () ->
     link = (scope, el, attrs, ctrl) ->
         ctrl.setAvatarData()
+        scope.$on 'detail-popup:updated', (event, detail) ->
+            if detail.type == 'us' && ctrl.userstory.get('id') == detail.item.id
+                ctrl.loadRelatedUserstories()
 
     return {
         link: link,

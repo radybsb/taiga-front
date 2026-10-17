@@ -19,12 +19,15 @@ class EpicsDashboardController
         "tgProjectService",
         "tgEpicsService",
         "tgAppMetaService",
-        "$translate"
+        "$translate",
+        "$scope"
     ]
 
     constructor: (@params, @errorHandlingService, @lightboxFactory, @lightboxService,
-                  @confirm, @projectService, @epicsService, @appMetaService, @translate) ->
+                  @confirm, @projectService, @epicsService, @appMetaService, @translate, @scope) ->
 
+        @scope.$on 'detail-popup:updated', (event, detail) =>
+            @epicsService.updateDetail(detail.item) if detail.type == 'epic'
         @.sectionName = "EPICS.SECTION_NAME"
 
         taiga.defineImmutableProperty @, 'project', () => return @projectService.project
@@ -66,7 +69,7 @@ class EpicsDashboardController
             return # To prevent error https://docs.angularjs.org/error/$parse/isecdom?p0=onCreateEpic()
 
         @lightboxFactory.create('tg-create-epic', {
-            "class": "lightbox lightbox-create-epic open"
+            "class": "lightbox lightbox-create-epic"
             "on-create-epic": "onCreateEpic()"
         }, {
             "onCreateEpic": onCreateEpic.bind(this)

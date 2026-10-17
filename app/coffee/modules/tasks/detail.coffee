@@ -52,6 +52,7 @@ class TaskDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         @.initializeEventHandlers()
 
         promise = @.loadInitialData()
+        @scope.detailLoad = promise if @scope.detailPopup
 
         promise.then () =>
             @._setMeta()
@@ -60,6 +61,7 @@ class TaskDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         promise.then null, @.onInitialDataError.bind(@)
 
     _setMeta: ->
+        return if @scope.detailPopup
         title = @translate.instant("TASK.PAGE_TITLE", {
             taskRef: "##{@scope.task.ref}"
             taskSubject: @scope.task.subject
@@ -88,6 +90,7 @@ class TaskDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
             @.loadTask()
 
     initializeOnDeleteGoToUrl: ->
+        return if @scope.detailPopup
         ctx = {project: @scope.project.slug}
         @scope.onDeleteGoToUrl = @navUrls.resolve("project", ctx)
         if @scope.project.is_backlog_activated

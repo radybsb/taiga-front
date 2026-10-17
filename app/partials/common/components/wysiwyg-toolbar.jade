@@ -12,6 +12,8 @@
     .wysiwyg.js-wysiwyg-html(
         ng-if="markdown.length"
         tg-bind-wysiwyg-html="markdown"
+        on-todo-change="toggleTodo(index, checked)"
+        todo-editable="explicitEdit && !editMode && !saving"
     )
 
     .wysiwyg.js-wysiwyg-html(

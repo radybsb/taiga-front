@@ -14,6 +14,7 @@ tg-svg.icon-drag(
     - var hash = "#";
     a(
         tg-nav="project-userstories-detail:project=vm.userstory.getIn(['project_extra_info', 'slug']),ref=vm.userstory.get('ref')"
+        tg-detail-popup-link
     )
         span.related-text(
             ng-attr-title="{{vm.userstory.get('subject')}}"

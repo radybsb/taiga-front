@@ -81,10 +81,11 @@ div.taskboard-table(
                                 ng-class='{hidden:!usFolded[us.id]}'
                             )
 
-                        .taskboard-us
+                        .taskboard-us(tg-card-click="{route: 'project-userstories-detail', project: project.slug, ref: us.ref}")
                             h3.us-title
                                 a(href="",
                                 tg-nav="project-userstories-detail:project=project.slug,ref=us.ref",
+                                tg-detail-popup-link
                                 tg-nav-get-params="{\"milestone\": {{us.milestone}}}",
                                 tg-bo-title="'#' + us.ref + ' ' + us.subject")
                                     span.us-ref(tg-bo-ref="us.ref")
@@ -118,10 +119,16 @@ div.taskboard-table(
                                 span.card-lock(ng-if="us.is_blocked")
                                     tg-svg(svg-icon="icon-lock")
 
-                                p.status-value(ng-if="usStatusById[us.status]")
-                                    span(
-                                    ng-style="{'color': usStatusById[us.status]['color']}"
-                                    ng-bind="usStatusById[us.status]['name']")
+                                div.status-value(
+                                    ng-if="usStatusById[us.status]"
+                                    tg-taskboard-us-status
+                                    ng-model="us"
+                                )
+
+                            tg-card-slideshow.taskboard-us-slideshow(
+                                ng-if="!usFolded[us.id] && userstoryImages[us.id].size"
+                                images="userstoryImages[us.id]"
+                            )
 
                             .add-new-task
                                 include ../components/addnewtask
@@ -139,6 +146,7 @@ div.taskboard-table(
                             tg-class-permission="{'readonly': '!modify_task'}"
                             on-toggle-fold="ctrl.toggleFold(id, 'tasks')"
                             on-click-edit="ctrl.editTask(id)"
+                            on-click-title="ctrl.editTask(id)"
                             on-click-delete="ctrl.deleteTask(id)"
                             on-click-assigned-to="ctrl.changeTaskAssignedTo(id)"
                             project="project"
@@ -190,6 +198,7 @@ div.taskboard-table(
                             tg-class-permission="{'readonly': '!modify_task'}"
                             on-toggle-fold="ctrl.toggleFold(id, 'tasks')"
                             on-click-edit="ctrl.editTask(id)"
+                            on-click-title="ctrl.editTask(id)"
                             on-click-delete="ctrl.deleteTask(id)"
                             on-click-assigned-to="ctrl.changeTaskAssignedTo(id)"
                             project="project"

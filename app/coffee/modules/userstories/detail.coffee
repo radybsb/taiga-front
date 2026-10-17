@@ -60,6 +60,7 @@ class UserStoryDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         @.initializeEventHandlers()
 
         promise = @.loadInitialData()
+        @scope.detailLoad = promise if @scope.detailPopup
 
         # On Success
         promise.then =>
@@ -70,6 +71,7 @@ class UserStoryDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
         promise.then null, @.onInitialDataError.bind(@)
 
     _setMeta: ->
+        return if @scope.detailPopup
         totalTasks = @scope.tasks.length
         closedTasks = _.filter(@scope.tasks, (t) => @scope.taskStatusById[t.status].is_closed).length
         progressPercentage = if totalTasks > 0 then Math.round(100 * closedTasks / totalTasks) else 0
@@ -118,6 +120,7 @@ class UserStoryDetailController extends mixOf(taiga.Controller, taiga.PageMixin)
             @.loadUs()
 
     initializeOnDeleteGoToUrl: ->
+        return if @scope.detailPopup
         ctx = {project: @scope.project.slug}
         @scope.onDeleteGoToUrl = @navUrls.resolve("project", ctx)
 

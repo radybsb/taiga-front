@@ -66,6 +66,18 @@ BulkOptions = (bulk, $rs, $rootScope, $confirm, $translate, $lightboxFactory, $d
             vm.message = '' if vm.open
             vm.failed = [] if vm.open
             vm.ids = selection() if vm.open
+        vm.start = (action) ->
+            return if vm.busy || !permitted(action)
+            vm.ids = selection()
+            return unless vm.ids.length
+            vm.message = ''
+            vm.failed = []
+            vm.panel = null
+            vm.open = action == 'tag'
+            switch action
+                when 'tag' then vm.show('tag')
+                when 'assigned' then vm.assign()
+                when 'epic' then vm.linkEpic()
         refresh = ->
             return controller.q.all([
                 controller.loadUserstories(true, scope.userstories.length), controller.loadSprints(),

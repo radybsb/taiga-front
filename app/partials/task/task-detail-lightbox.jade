@@ -1,0 +1,6 @@
+tg-lightbox-close
+.task-popup-content
+    p(ng-if="!attachmentsReady && !loadFailed" translate="COMMON.LOADING" role="status")
+    p(ng-if="loadFailed" translate="ERROR.TEXT1" role="alert")
+    .wrapper(ng-if="attachmentsReady")
+        include task-detail-content

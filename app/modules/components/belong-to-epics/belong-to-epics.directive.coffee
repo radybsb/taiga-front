@@ -11,6 +11,13 @@ module = angular.module('taigaEpics')
 BelongToEpicsDirective = ($translate, $confirm, $rs, $rs2, lightboxService) ->
 
     link = (scope, el, attrs) ->
+        scope.$on 'detail-popup:updated', (event, detail) ->
+            return unless detail.type == 'epic'
+            scope.immutable_epics = scope.immutable_epics.map (epic) ->
+                if epic.get('id') == detail.item.id
+                    return epic.merge(Immutable.fromJS(_.pick(detail.item, ['subject', 'color', 'ref'])))
+                return epic
+
         scope.$watch 'epics', (epics) ->
             updateEpics(epics)
 

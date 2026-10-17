@@ -12,6 +12,8 @@ issuesTableDirective = ($timeout) ->
 
     link = (scope, el, attrs, ctrl) ->
         scope.issueOptions = null
+        scope.$on 'detail-popup:updated', (event, detail) ->
+            ctrl.onLoadIssues() if detail.type == 'issue'
 
         scope.displayOptions = (id) ->
             if (timeout)

@@ -206,7 +206,9 @@ class BacklogController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.F
             index = _.findIndex @scope.userstories, (us) ->
                 return us.id == data.id
 
-            @scope.userstories[index] = data
+            @scope.userstories[index] = data if index != -1
+            for sprint in (@scope.sprints || []).concat(@scope.closedSprints || [])
+                sprint.user_stories = sprint.user_stories.map((us) -> if us.id == data.id then data else us)
 
             @rootscope.$broadcast("filters:update")
 

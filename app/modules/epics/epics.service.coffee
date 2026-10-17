@@ -22,6 +22,9 @@ class EpicsService
 
         taiga.defineImmutableProperty @, 'epics', () => return @._epics
 
+    updateDetail: (epic) ->
+        @._epics = @._epics.map((item) -> if item.get('id') == epic.id then item.merge(Immutable.fromJS(epic._attrs)) else item)
+
     clear: () ->
         @._loadingEpics = false
         @._disablePagination = false

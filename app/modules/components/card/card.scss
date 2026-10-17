@@ -9,7 +9,7 @@ $iocaine: #b400d1;
     border-radius: 4px;
     box-shadow: 4px 4px 8px rgba($color-gray400, .5);
     contain: content;
-    cursor: move;
+    cursor: pointer;
     display: block;
     margin: 1rem;
     outline: none;
@@ -37,6 +37,7 @@ $iocaine: #b400d1;
 .card-inner {
     background: $color-white;
     border-radius: .25rem;
+    cursor: pointer;
     padding: 1rem 0 .75rem 0;
 
     .wrapper-assigned-to-data {
@@ -569,7 +570,8 @@ $iocaine: #b400d1;
         cursor: pointer;
         display: flex;
         position: absolute;
-        top: 35%;
+        top: 50%;
+        transform: translateY(-50%);
     }
     svg {
         @include svg-size(1.2rem);
@@ -593,7 +595,9 @@ $iocaine: #b400d1;
     .slideshow-right {
         right: 0;
     }
-    img {
+    img:not(.loading-spinner) {
+        height: 150px;
+        object-fit: contain;
         width: 100%;
     }
 }
@@ -601,7 +605,11 @@ $iocaine: #b400d1;
 .card-slideshow-wrapper {
     align-items: center;
     display: flex;
-    height: 90px;
+    height: 150px;
     justify-content: center;
     overflow: hidden;
+
+    > div {
+        width: 100%;
+    }
 }

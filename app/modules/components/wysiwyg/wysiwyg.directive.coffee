@@ -41,9 +41,11 @@ Wysiwyg = ($translate, $confirm, $storage, wysiwygService, animationFrame, tgLoa
 
             $el.off('.wysiwygRead')
             $el.on 'mousedown.wysiwygRead', '.js-wysiwyg-html', (e) =>
+                return if $scope.explicitEdit
                 initialPos = {x: e.clientX, y: e.clientY}
 
             $el.on 'click.wysiwygRead', '.js-wysiwyg-html', (e) =>
+                return if $scope.explicitEdit || $(e.target).closest('input[type="checkbox"]').length
                 # O player e seus controles não devem abrir a edição.
                 return if $(e.target).closest('.inline-video, video').length
 
@@ -116,7 +118,7 @@ Wysiwyg = ($translate, $confirm, $storage, wysiwygService, animationFrame, tgLoa
 
             $scope.$applyAsync () => linksEvents()
 
-            if isDraft()
+            if (isDraft() && !$scope.explicitEdit) || $scope.editRequest
                 $scope.setEditMode(true)
 
             textEditor.addEventListener 'modeChanged', (event) =>
@@ -146,11 +148,35 @@ Wysiwyg = ($translate, $confirm, $storage, wysiwygService, animationFrame, tgLoa
 
         $scope.setEditMode = (editMode) ->
             $scope.editMode = editMode
+            $scope.onEditModeChange({editing: editMode})
 
             if editMode
                 textEditor.mode = $scope.mode
             else
                 textEditor.mode = 'html'
+
+        $scope.$watch 'editRequest', (request, previous) ->
+            if request && request != previous && textEditor
+                $scope.setEditMode(true)
+
+        $scope.toggleTodo = (index, checked) ->
+            return unless $scope.explicitEdit && !$scope.editMode && !$scope.saving
+            previous = $scope.markdown
+            current = -1
+            # Change only the task marker, preserving all other Markdown/media.
+            updated = previous.replace /(^[ \t]*(?:[-+*]|\d+[.)])[ \t]+\[)([ xX])(\])/gm, (match, start, state, end) ->
+                current += 1
+                return if current == index then start + (if checked then 'x' else ' ') + end else match
+            return if updated == previous
+            $scope.markdown = updated
+            $scope.saving = true
+            $scope.onSave({text: updated, cb: (success) ->
+                if success == false
+                    $scope.markdown = previous
+                    $el.find('.js-wysiwyg-html input[type="checkbox"]').eq(index).prop('checked', !checked)
+                setHtmlEditor($scope.markdown)
+                $scope.saving = false
+            })
 
         $scope.save = (e) ->
             e.preventDefault() if e
@@ -277,6 +303,9 @@ Wysiwyg = ($translate, $confirm, $storage, wysiwygService, animationFrame, tgLoa
     return {
         templateUrl: "common/components/wysiwyg-toolbar.html",
         scope: {
+            explicitEdit: '<',
+            editRequest: '<',
+            onEditModeChange: '&',
             htmlReadMode: '<'
             editonly: '<',
             project: '<',

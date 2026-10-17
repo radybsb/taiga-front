@@ -22,6 +22,7 @@ class LightboxFactory
         if attrs
             elm.attr(attrs)
 
+        elm.data('scope', scope)
         elm.addClass("remove-on-close")
 
         html = @compile(elm)(scope)

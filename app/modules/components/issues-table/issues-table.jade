@@ -162,6 +162,7 @@ section.issues-table.basic-table(ng-class="{empty: !ctrl.issues.length}")
             a(
                 href=""
                 tg-nav="project-issues-detail:project=project.slug,ref=issue.ref"
+                tg-detail-popup-link
                 title="#{{ ::issue.ref }} {{ ::issue.subject }}"
             )
                 span.issue-text

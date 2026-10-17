@@ -51,7 +51,7 @@ module.service("$tgNavUrls", NavigationUrlsService)
 ## Navigation Urls Directive
 #############################################################################
 
-NavigationUrlsDirective = ($navurls, $auth, $q, $location, lightboxService, tgSections) ->
+NavigationUrlsDirective = ($navurls, $auth, $q, $location, lightboxService, tgSections, $injector) ->
     # Example:
     # link(tg-nav="project-backlog:project='sss',")
 
@@ -139,6 +139,12 @@ NavigationUrlsDirective = ($navurls, $auth, $q, $location, lightboxService, tgSe
                         if event.metaKey || event.ctrlKey
                             return
 
+                        if $attrs.$attr.tgDetailPopupLink
+                            return if event.shiftKey || event.altKey || event.which == 2 || event.button > 0
+                            event.preventDefault()
+                            $scope.$evalAsync -> $injector.get('tgDetailPopup').open(name, options)
+                            return
+
                         event.preventDefault()
                         target = $(event.currentTarget)
 
@@ -162,4 +168,4 @@ NavigationUrlsDirective = ($navurls, $auth, $q, $location, lightboxService, tgSe
     return {link: link}
 
 module.directive("tgNav",
-    ["$tgNavUrls", "$tgAuth", "$q", "$tgLocation", "lightboxService", "$tgSections", NavigationUrlsDirective])
+    ["$tgNavUrls", "$tgAuth", "$q", "$tgLocation", "lightboxService", "$tgSections", "$injector", NavigationUrlsDirective])

@@ -9,9 +9,42 @@
 class CardController
     @.$inject = [
         "$scope",
+        "$tgNavUrls",
+        "$tgLocation",
+        "tgDetailPopup",
     ]
 
-    constructor: (@scope) ->
+    constructor: (@scope, @navUrls, @location, @detailPopup) ->
+
+    canOpenTitlePopup: () ->
+        return true if @type == 'us'
+        return !!@onClickTitle && !@project.archived_code &&
+            _.includes(@project.my_permissions, @getModifyPermisionKey())
+
+    getTitleUrl: () ->
+        return @navUrls.resolve(@getNavKey(), {project: @project.slug, ref: @item.getIn(['model', 'ref'])})
+
+    openTitle: (event) ->
+        return if event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0
+        return unless @canOpenTitlePopup()
+        event.preventDefault()
+        event.stopPropagation()
+        return if @item.get('loading-edit')
+        if @type == 'us'
+            @detailPopup.open(@getNavKey(), {project: @project.slug, ref: @item.getIn(['model', 'ref'])})
+        else
+            @onClickTitle({id: @item.get('id')})
+
+    openCard: (event) ->
+        if @canOpenTitlePopup()
+            @openTitle(event)
+        else
+            url = @getTitleUrl()
+            params = @getLinkParams()
+            query = $.param(params) if params
+            url += '?' + query if query
+            @location.url(url)
+        return
 
     getLinkParams: () ->
         ctrl = taiga.findScope @scope, (scope) ->

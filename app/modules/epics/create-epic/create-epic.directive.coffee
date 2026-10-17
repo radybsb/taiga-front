@@ -6,8 +6,10 @@
 # Copyright (c) 2021-present Kaleidos INC
 ###
 
-CreateEpicDirective = () ->
+CreateEpicDirective = (lightboxService) ->
     link = (scope, el, attrs, ctrl) ->
+        lightboxService.open(el)
+
         form = el.find("form").checksley()
 
         ctrl.validateForm = =>
@@ -26,5 +28,7 @@ CreateEpicDirective = () ->
         },
         scope: {}
     }
+
+CreateEpicDirective.$inject = ["lightboxService"]
 
 angular.module('taigaEpics').directive("tgCreateEpic", CreateEpicDirective)

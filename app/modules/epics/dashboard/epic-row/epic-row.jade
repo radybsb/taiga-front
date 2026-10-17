@@ -27,6 +27,7 @@
         - var hash = "#";
         a(
             tg-nav="project-epics-detail:project=vm.project.slug,ref=vm.epic.get('ref')"
+            tg-detail-popup-link
             ng-attr-title="{{::vm.epic.get('subject')}}"
         )
             span.ref(ng-bind-html="'#'+vm.epic.get('ref')")

@@ -14,7 +14,8 @@
 
 .task-name
     a.clickable(
-        tg-nav="project-tasks-detail:project=project.slug,ref=task.ref")
+        tg-nav="project-tasks-detail:project=project.slug,ref=task.ref"
+        tg-detail-popup-link)
         span.task-name-ref #<%- task.ref %>
         span.task-name-subject(ng-non-bindable) <%= emojify(task.subject) %>
     tg-due-date(

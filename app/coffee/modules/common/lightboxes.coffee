@@ -22,13 +22,18 @@ normalizeString = @.taiga.normalizeString
 # the lightboxContent hide/show doesn't have sense because is an IE hack
 class LightboxService extends taiga.Service
     constructor: (@animationFrame, @q, @rootScope) ->
+        @opened = []
+        @stackLevel = 0
 
     open: ($el, onClose, onEsc, ignoreEsc) ->
-        @.onClose = onClose
-
         if _.isString($el)
             $el = $($el)
         defered = @q.defer()
+        $el.data('lightbox-on-close', onClose || null)
+        @opened = @opened.filter((element) -> element != $el[0])
+        @stackLevel = 0 unless @opened.length
+        $el[0].style.setProperty('--lightbox-stack-level', String(@stackLevel++))
+        @opened.push($el[0])
 
         # Keep the full-screen backdrop, but size a separate dialog to content.
         # Move existing nodes (including Angular anchors) without recompiling.
@@ -38,9 +43,26 @@ class LightboxService extends taiga.Service
             $el.append(panel)
         $el.addClass('lightbox-dialog')
 
-        # Only the backdrop closes the dialog; clicks in its panel bubble safely.
-        $el.off('click.lightbox-backdrop').on 'click.lightbox-backdrop', (event) =>
-            if event.target == $el[0] && $el.hasClass('open') && !$el.hasClass('close-started')
+        # A selection/drag that starts inside must not become a backdrop click.
+        startedOnBackdrop = false
+        endedOnBackdrop = false
+        $el.off('.lightbox-backdrop')
+        $el.on 'pointerdown.lightbox-backdrop', (event) ->
+            startedOnBackdrop = event.target == $el[0] && event.button == 0
+            endedOnBackdrop = false
+            return
+        $el.on 'pointerup.lightbox-backdrop', (event) ->
+            endedOnBackdrop = startedOnBackdrop && event.target == $el[0]
+            return
+        $el.on 'pointercancel.lightbox-backdrop', ->
+            startedOnBackdrop = false
+            endedOnBackdrop = false
+            return
+        $el.on 'click.lightbox-backdrop', (event) =>
+            backdropClick = startedOnBackdrop && endedOnBackdrop && event.target == $el[0]
+            startedOnBackdrop = false
+            endedOnBackdrop = false
+            if backdropClick && $el.hasClass('open') && !$el.hasClass('close-started')
                 @rootScope.$applyAsync => @.close($el)
 
         lightboxContent = $el.children().not(".close")
@@ -65,14 +87,18 @@ class LightboxService extends taiga.Service
 
         if !ignoreEsc
             docEl = angular.element(document)
-            docEl.on "keydown.lightbox", (e) =>
+            previousKeydown = $el.data('lightbox-keydown')
+            docEl.off('keydown.lightbox', previousKeydown) if previousKeydown
+            keydown = (e) =>
+                return unless @opened[@opened.length - 1] == $el[0]
                 code = if e.keyCode then e.keyCode else e.which
                 if code == 27
                     if onEsc
                         @rootScope.$applyAsync(onEsc)
                     else
-                        @.close($el)
-
+                        @rootScope.$applyAsync => @.close($el)
+            $el.data('lightbox-keydown', keydown)
+            docEl.on('keydown.lightbox', keydown)
 
         @rootScope.$broadcast("lightbox:opened")
         return defered.promise
@@ -82,7 +108,10 @@ class LightboxService extends taiga.Service
             if _.isString($el)
                 $el = $($el)
             docEl = angular.element(document)
-            docEl.off(".lightbox")
+            keydown = $el.data('lightbox-keydown')
+            docEl.off('keydown.lightbox', keydown) if keydown
+            @opened = @opened.filter((element) -> element != $el[0])
+            onClose = $el.data('lightbox-on-close')
             docEl.off(".keyboard-navigation") # Hack: to fix problems in the WYSIWYG textareas when press ENTER
 
             $el.addClass('close-started') # don't attach animations
@@ -97,8 +126,8 @@ class LightboxService extends taiga.Service
                         .removeClass('close')
                         .removeClass('close-started')
 
-                    if @.onClose
-                        @rootScope.$apply(@.onClose)
+                    if onClose
+                        @rootScope.$apply(onClose)
 
                     resolve()
 
@@ -115,7 +144,7 @@ class LightboxService extends taiga.Service
 
     closeAll: ->
         docEl = angular.element(document)
-        for lightboxEl in docEl.find(".lightbox.open")
+        for lightboxEl in docEl.find(".lightbox.open").get().reverse()
             @.close($(lightboxEl))
 
 
@@ -181,6 +210,7 @@ LightboxDirective = (lightboxService) ->
 
         if !$attrs.$attr.visible
             $el.on "click", ".close", (event) ->
+                return unless $(event.target).closest('.lightbox')[0] == $el[0]
                 event.preventDefault()
                 lightboxService.close($el)
 

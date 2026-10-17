@@ -10,6 +10,9 @@ class TaigaBase
 class TaigaService extends TaigaBase
 class TaigaController extends TaigaBase
     onInitialDataError: (xhr) =>
+        if @scope?.detailPopup
+            @scope.loadFailed = true unless @scope.$$destroyed
+            return
         if xhr
             if xhr.status == 404
                 @errorHandlingService.notfound()

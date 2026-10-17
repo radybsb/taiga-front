@@ -9,7 +9,11 @@
 module = angular.module("taigaComponents")
 
 cardSlideshowDirective = () ->
+    link = (scope, el, attrs, ctrl) ->
+        scope.$watch 'vm.images.size', (size) ->
+            ctrl.index = 0 if ctrl.index >= size
     return {
+        link: link,
         controller: "CardSlideshow",
         templateUrl: "components/card-slideshow/card-slideshow.html",
         bindToController: true,

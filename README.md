@@ -123,3 +123,21 @@ To run a local Selenium Server, you will need to have the Java Development Kit (
     protractor conf.e2e.js --suite=auth     # To tests authentication
     protractor conf.e2e.js --suite=full     # To test all the platform authenticated
     ```
+
+## Build da imagem com as customizações
+
+`docker/Dockerfile` compila o código deste repositório com `npm ci` e `gulp deploy`,
+em um estágio separado do runtime Nginx. Não baixa o front-end oficial pronto.
+
+```sh
+docker build -f docker/Dockerfile -t hakoon/taiga-front:preview-20261015-01 .
+```
+
+O `conf.json` é gerado na inicialização com as variáveis do ambiente. O arquivo
+local `conf/conf.json` e os diretórios `dist`, `tmp` e `node_modules` não entram
+no build. Defina `TAIGA_URL`, `TAIGA_WEBSOCKETS_URL`, `TAIGA_SUBPATH` e, se o
+serviço de eventos estiver desligado, `ENABLE_EVENTS=false`.
+
+Para o teste em `taiga-homolog.hakoongames.com`, consulte
+`taiga-docker/preview/README.md` no repositório de infraestrutura ao lado deste.
+O Compose de preview usa um container separado com a API e os dados de produção.

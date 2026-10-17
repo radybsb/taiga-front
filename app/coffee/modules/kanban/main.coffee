@@ -210,15 +210,18 @@ class KanbanController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.Fi
             @analytics.trackEvent("userstory", "create", "bulk create userstory on kanban", 1)
 
         @scope.$on "usform:edit:success", (event, us) =>
+            previous = @kanbanUserstoriesService.getUsModel(us.id)
+            return unless previous
             @.refreshTagsColors().then () =>
-                oldStatus = @kanbanUserstoriesService.getUsModel(us.id).status
+                oldStatus = previous.status
                 if oldStatus != us.status
                     # the us has to move at the end of the status
                     status = @scope.usByStatus.get(us.status.toString())
-                    if status
+                    newOrder = 0
+                    if status?.size
                         lastUsId = status.last()
                         newOrder = @scope.usMap.get(lastUsId).getIn(['model', 'kanban_order']) + 1
-                        us.kanban_order = newOrder
+                    us.kanban_order = newOrder
 
                 @kanbanUserstoriesService.replaceModel(us)
                 @kanbanUserstoriesService.refreshRawOrder()

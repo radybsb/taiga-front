@@ -508,7 +508,19 @@
 }
 
 .backlog-bulk-options {
+    align-items: center;
+    display: none;
+    gap: .5rem;
     position: relative;
+
+    .bulk-toolbar-button {
+        flex-shrink: 0;
+
+        tg-svg {
+            height: 1rem;
+            width: 1rem;
+        }
+    }
 
     .backlog-bulk-popup {
         background: $color-white;

@@ -52,6 +52,19 @@ BindCode = ($sce, $parse, $compile, wysiwygService) ->
         return (scope, element, attr) ->
             $compile.$$addBindingInfo(element, attr.tgBindWysiwygHtml);
 
+            todoSelector = '.task-list-item input[type="checkbox"], .todo-list input[type="checkbox"]'
+            updateTodo = ->
+                enabled = !!attr.onTodoChange && scope.$eval(attr.todoEditable)
+                element.find(todoSelector).prop('disabled', !enabled)
+            element.on 'change.wysiwygTodo', todoSelector, (event) ->
+                return unless attr.onTodoChange && scope.$eval(attr.todoEditable)
+                input = event.target
+                index = element.find(todoSelector).index(input)
+                scope.$applyAsync ->
+                    scope.$eval(attr.onTodoChange, {index: index, checked: input.checked})
+            scope.$watch attr.todoEditable, updateTodo if attr.todoEditable
+            scope.$on '$destroy', -> element.off('.wysiwygTodo')
+
             scope.$watch tgBindWysiwygHtmlWatch, () ->
                 html = wysiwygService.getHTML(tgBindWysiwygHtmlGetter(scope))
 
@@ -59,6 +72,7 @@ BindCode = ($sce, $parse, $compile, wysiwygService) ->
 
                 wysiwygService.refreshAttachmentURL(html).then (html) =>
                     render(element, html)
+                    updateTodo()
 
   }
 

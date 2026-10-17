@@ -77,6 +77,7 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
         bindMethods(@)
         @taskboardTasksService.reset()
         @scope.userstories = []
+        @scope.userstoryImages = {}
         @.openFilter = false
         @.filterQ = ''
         @.backToBacklogUrl = @navUrls.resolve('project-backlog', {
@@ -313,6 +314,10 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
         @appMetaService.setAll(title, description)
 
     initializeEventHandlers: ->
+        @scope.$on 'usform:edit:success', (event, us) =>
+            @scope.userstories = @scope.userstories.map((item) -> if item.id == us.id then us else item)
+            @.loadUserstoryImages().catch => @confirm.notify('error')
+            @.loadSprintStats()
         @scope.$on "taskform:bulk:success", (event, tasks) =>
             @.refreshTagsColors().then () =>
                 @taskboardTasksService.add(tasks)
@@ -440,11 +445,26 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
         return @rs.sprints.get(@scope.projectId, @scope.sprintId).then (sprint) =>
             @scope.sprint = sprint
             @scope.userstories = _.sortBy(sprint.user_stories, "sprint_order")
+            @.loadUserstoryImages().catch => @confirm.notify('error')
 
             @taskboardTasksService.setUserstories(@scope.userstories)
 
             @rootscope.$broadcast("taskboard:userstories:loaded", @scope.userstories)
             return sprint
+
+    loadUserstoryImages: ->
+        # Fetch the sprint's attachment summaries together without changing the
+        # shared story filters used by other pages.
+        @repo.queryMany('userstories', {
+            project: @scope.projectId,
+            milestone: @scope.sprintId,
+            include_attachments: true
+        }).then (stories) =>
+            return if @scope.$$destroyed
+            images = {}
+            for story in stories
+                images[story.id] = Immutable.fromJS((story.attachments || []).filter((attachment) -> !!attachment.thumbnail_card_url))
+            @scope.userstoryImages = images
 
     loadIssues: ->
         params = {}
@@ -529,24 +549,24 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
 
     editTask: (id) ->
         task = @.taskboardTasksService.getTask(id)
+        return if task.get('loading-edit')
 
         task = task.set('loading-edit', true)
         @taskboardTasksService.replace(task)
 
         @rs.tasks.getByRef(task.getIn(['model', 'project']), task.getIn(['model', 'ref']))
         .then (editingTask) =>
-            @rs2.attachments.list("task", task.get('id'), task.getIn(['model', 'project']))
-            .then (attachments) =>
-                @rootscope.$broadcast("genericform:edit", {
-                    'objType': 'task',
-                    'obj': editingTask,
-                    'project': @scope.project,
-                    'sprintId': @scope.sprintId,
-                    'attachments': attachments.toJS()
-                })
+            @lightboxFactory.create('tg-task-detail-lightbox', {
+                'class': 'lightbox lightbox-task-detail'
+            }, {
+                popupTask: editingTask,
+                popupProject: @scope.project
+            })
 
-                task = task.set('loading-edit', false)
-                @taskboardTasksService.replace(task)
+        .catch => @confirm.notify('error')
+        .finally =>
+            task = @taskboardTasksService.getTask(id).set('loading-edit', false)
+            @taskboardTasksService.replace(task)
 
     editIssue: (id) ->
         issue = @.taskboardIssuesService.getIssue(id)

@@ -89,7 +89,7 @@ class WysiwygService
 
     # Install converters through the CKEditor instance exposed on its editable DOM.
     # Store links in data/Markdown; players exist only in the editing view.
-    enableEditorVideos: (editor) ->
+    enableEditorVideos: (editor, reload = true) ->
         return if editor.model.schema.isRegistered('taigaInlineVideo')
 
         service = @
@@ -214,7 +214,24 @@ class WysiwygService
             return false
 
         # Reload the current data once so existing MP4 links use the converters.
-        editor.setData(editor.getData())
+        editor.setData(editor.getData()) if reload
+
+    initializeEditorMedia: (editor) ->
+        return if editor._taigaMediaInitialized
+        # CKEditor has already parsed its first value without our row schema.
+        # Preserve the component's original HTML before any change event can
+        # replace it with that normalized (and flattened) model.
+        editable = editor.ui.getEditableElement()
+        strategy = editable.closest('tg-text-editor')?.ngElementStrategy
+        component = (strategy?.componentRef || strategy?.strategy?.componentRef)?.instance
+        source = component?.contentHtml
+        source = editor.config.get('initialData') unless typeof source == 'string'
+        source = editor.getData() unless typeof source == 'string'
+        @enableEditorVideos(editor, false)
+        @layout?.enable(editor)
+        editor._taigaMediaInitialized = true
+        editor.setData(source)
+        @enableMediaResize(editor)
 
     observeEditorVideos: (root) ->
         pending = new Map()
@@ -223,15 +240,11 @@ class WysiwygService
                 editor = editable.ckeditorInstance
                 return unless editor
                 if editor.state == 'ready'
-                    @enableEditorVideos(editor)
-                    @layout?.enable(editor)
-                    @enableMediaResize(editor)
+                    @initializeEditorMedia(editor)
                 else if editor.state == 'initializing' && !pending.has(editor)
                     onReady = =>
                         pending.delete(editor)
-                        @enableEditorVideos(editor)
-                        @layout?.enable(editor)
-                        @enableMediaResize(editor)
+                        @initializeEditorMedia(editor)
                     pending.set(editor, onReady)
                     editor.once('ready', onReady)
         observer = new MutationObserver(attach)
@@ -302,21 +315,38 @@ class WysiwygService
                     video.src = model.getAttribute('src')
             service.applyMediaSizes(editable)
             position()
+        sizeObserver = new ResizeObserver(position)
+        sizeObserver.observe(overlayRoot)
+        sizeObserver.observe(editable)
         select = (event) ->
             return if editor.isReadOnly
+            sizeObserver.unobserve(selected) if selected
             selected = event.target.closest('img, video')
+            sizeObserver.observe(selected) if selected
             position()
         move = (event) ->
             return unless drag
+            return if event.pointerId? && drag.pointerId? && event.pointerId != drag.pointerId
+            # Native video controls may swallow pointerup. Do not keep resizing
+            # if a later movement reports that the mouse button is released.
+            return finish(event) if event.buttons == 0
             delta = ((event.clientX - drag.x) * drag.horizontal + (event.clientY - drag.y) * drag.vertical * drag.ratio) / (1 + drag.ratio * drag.ratio)
             drag.width = Math.round(Math.max(48, Math.min(drag.max, drag.start + delta)))
             selected.style.width = drag.width + 'px'
             position()
             event.preventDefault()
-        finish = ->
+        releasePointer = (current) ->
+            try
+                current.handle.releasePointerCapture(current.pointerId) if current.pointerId? && current.handle.hasPointerCapture?(current.pointerId)
+            catch
+                # The browser may already have released capture on cancellation.
+                return
+        finish = (event) ->
             return unless drag
+            return if event?.pointerId? && drag.pointerId? && event.pointerId != drag.pointerId
             current = drag
             drag = null
+            releasePointer(current)
             if current.width != current.start && current.model && !editor.isReadOnly
                 editor.model.change (writer) ->
                     writer.setAttribute('src', service.sizedMediaURL(current.model.getAttribute('src'), current.width), current.model)
@@ -328,23 +358,34 @@ class WysiwygService
                 overlay.appendChild(handle)
                 handle.addEventListener 'pointerdown', (event) ->
                     return unless selected && !editor.isReadOnly
+                    return if drag || (event.button? && event.button != 0)
                     model = modelOf(selected)
                     return unless model && model.getAttribute('src')
                     rect = selected.getBoundingClientRect()
                     return unless rect.width && rect.height
                     drag = {
                         model: model, x: event.clientX, y: event.clientY
+                        handle: handle, pointerId: event.pointerId
                         start: rect.width, width: rect.width, ratio: rect.height / rect.width
                         horizontal: if corner[1] == 'e' then 1 else -1
                         vertical: if corner[0] == 's' then 1 else -1
                         max: Math.max(48, Math.min(4096, editable.clientWidth))
                     }
+                    try
+                        handle.setPointerCapture?(event.pointerId) if event.pointerId?
+                    catch
+                        # Window capture listeners remain a fallback.
+                        null
                     event.preventDefault()
                     event.stopPropagation()
+                handle.addEventListener('lostpointercapture', finish)
         editable.addEventListener('click', select)
-        document.addEventListener('pointermove', move)
-        document.addEventListener('pointerup', finish)
-        document.addEventListener('pointercancel', finish)
+        editable.addEventListener('loadedmetadata', position, true)
+        editable.addEventListener('resize', position, true)
+        editable.addEventListener('load', position, true)
+        window.addEventListener('pointermove', move, true)
+        window.addEventListener('pointerup', finish, true)
+        window.addEventListener('pointercancel', finish, true)
         window.addEventListener('scroll', position, true)
         window.addEventListener('resize', position)
         window.addEventListener('blur', finish)
@@ -356,13 +397,21 @@ class WysiwygService
         editor.model.document.on('change:data', sync)
         sync()
         editor.once 'destroy', ->
+            if drag
+                current = drag
+                drag = null
+                releasePointer(current)
             observer.disconnect()
+            sizeObserver.disconnect()
             modeObserver.disconnect()
             editor.model.document.off('change:data', sync)
             editable.removeEventListener('click', select)
-            document.removeEventListener('pointermove', move)
-            document.removeEventListener('pointerup', finish)
-            document.removeEventListener('pointercancel', finish)
+            editable.removeEventListener('loadedmetadata', position, true)
+            editable.removeEventListener('resize', position, true)
+            editable.removeEventListener('load', position, true)
+            window.removeEventListener('pointermove', move, true)
+            window.removeEventListener('pointerup', finish, true)
+            window.removeEventListener('pointercancel', finish, true)
             window.removeEventListener('scroll', position, true)
             window.removeEventListener('resize', position)
             window.removeEventListener('blur', finish)

@@ -46,7 +46,8 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
         "tgFilterRemoteStorageService",
         "tgLightboxFactory",
         "$timeout",
-        "tgProjectService"
+        "tgProjectService",
+        "tgDetailPopupRefresh"
     ]
 
     excludePrefix: "exclude_"
@@ -73,7 +74,7 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
 
     constructor: (@scope, @rootscope, @repo, @confirm, @rs, @rs2, @params, @q, @appMetaService, @location, @navUrls,
                   @events, @analytics, @translate, @errorHandlingService, @taskboardTasksService,
-                  @taskboardIssuesService, @storage, @filterRemoteStorageService, @lightboxFactory, @timeout, @projectService) ->
+                  @taskboardIssuesService, @storage, @filterRemoteStorageService, @lightboxFactory, @timeout, @projectService, @popupRefresh) ->
         bindMethods(@)
         @taskboardTasksService.reset()
         @scope.userstories = []
@@ -314,6 +315,13 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
         @appMetaService.setAll(title, description)
 
     initializeEventHandlers: ->
+        @popupRefresh.listen(@scope, (=>
+            @q.all([
+                @.loadSprint().then(=> @.loadTasks()),
+                @.loadSprintStats(),
+                @.refreshTagsColors()
+            ])
+        ), => @confirm.notify('error'))
         @scope.$on 'usform:edit:success', (event, us) =>
             @scope.userstories = @scope.userstories.map((item) -> if item.id == us.id then us else item)
             @.loadUserstoryImages().catch => @confirm.notify('error')
@@ -332,7 +340,8 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
 
         @scope.$on "taskform:edit:success", (event, task) =>
             @.refreshTagsColors().then () =>
-                @taskboardTasksService.replaceModel(task)
+                # Detail models may omit attachments and board summary fields.
+                @q.all([@.loadTasks(), @.loadSprintStats()])
 
         @scope.$on "issueform:new:success", (event, issue) =>
             @.refreshTagsColors().then () =>
@@ -445,12 +454,12 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
         return @rs.sprints.get(@scope.projectId, @scope.sprintId).then (sprint) =>
             @scope.sprint = sprint
             @scope.userstories = _.sortBy(sprint.user_stories, "sprint_order")
-            @.loadUserstoryImages().catch => @confirm.notify('error')
+            images = @.loadUserstoryImages().catch => @confirm.notify('error')
 
             @taskboardTasksService.setUserstories(@scope.userstories)
 
             @rootscope.$broadcast("taskboard:userstories:loaded", @scope.userstories)
-            return sprint
+            return images.then -> sprint
 
     loadUserstoryImages: ->
         # Fetch the sprint's attachment summaries together without changing the
@@ -557,7 +566,8 @@ class TaskboardController extends mixOf(taiga.Controller, taiga.PageMixin, taiga
         @rs.tasks.getByRef(task.getIn(['model', 'project']), task.getIn(['model', 'ref']))
         .then (editingTask) =>
             @lightboxFactory.create('tg-task-detail-lightbox', {
-                'class': 'lightbox lightbox-task-detail'
+                'class': 'lightbox lightbox-task-detail',
+                'tg-detail-popup-refresh': true
             }, {
                 popupTask: editingTask,
                 popupProject: @scope.project

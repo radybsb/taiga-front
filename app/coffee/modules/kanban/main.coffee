@@ -51,7 +51,8 @@ class KanbanController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.Fi
         "tgProjectService",
         "tgLightboxFactory",
         "tgLoader",
-        "$timeout"
+        "$timeout",
+        "tgDetailPopupRefresh"
     ]
 
     storeCustomFiltersName: 'kanban-custom-filters'
@@ -72,7 +73,7 @@ class KanbanController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.Fi
     constructor: (@scope, @rootscope, @repo, @confirm, @rs, @rs2, @params, @q, @location,
                   @appMetaService, @navUrls, @events, @analytics, @translate, @errorHandlingService,
                   @model, @kanbanUserstoriesService, @storage, @filterRemoteStorageService,
-                  @projectService, @lightboxFactory, @tgLoader, @timeout) ->
+                  @projectService, @lightboxFactory, @tgLoader, @timeout, @popupRefresh) ->
         bindMethods(@)
         @kanbanUserstoriesService.reset()
         @.openFilter = false
@@ -184,6 +185,12 @@ class KanbanController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.Fi
             @.moveUs(null, uss, us.status, us.swimlane, 0, null, nextUsId)
 
     initializeEventHandlers: ->
+        @popupRefresh.listen(@scope, (=>
+            @q.all([
+                @.eventsLoadUserstories({pk: @kanbanUserstoriesService.userstoriesRaw.map((us) -> us.id)}),
+                @.refreshTagsColors()
+            ])
+        ), => @confirm.notify('error'))
         @scope.$on "usform:new:success", (event, us, position = 'bottom') =>
             @.refreshTagsColors().then () =>
                 @kanbanUserstoriesService.add(us)
@@ -210,24 +217,10 @@ class KanbanController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.Fi
             @analytics.trackEvent("userstory", "create", "bulk create userstory on kanban", 1)
 
         @scope.$on "usform:edit:success", (event, us) =>
-            previous = @kanbanUserstoriesService.getUsModel(us.id)
-            return unless previous
-            @.refreshTagsColors().then () =>
-                oldStatus = previous.status
-                if oldStatus != us.status
-                    # the us has to move at the end of the status
-                    status = @scope.usByStatus.get(us.status.toString())
-                    newOrder = 0
-                    if status?.size
-                        lastUsId = status.last()
-                        newOrder = @scope.usMap.get(lastUsId).getIn(['model', 'kanban_order']) + 1
-                    us.kanban_order = newOrder
-
-                @kanbanUserstoriesService.replaceModel(us)
-                @kanbanUserstoriesService.refreshRawOrder()
-                @kanbanUserstoriesService.refresh(false)
-                @.generateFilters()
-                @.filtersReloadContent() if @.isUsInArchivedHiddenStatus(us.id)
+            return unless @kanbanUserstoriesService.getUsModel(us.id)
+            # The detail object can omit attachment and task summaries. Fetch
+            # complete card data through the same queue as live popup changes.
+            @rootscope.$broadcast('detail-popup:changed', {type: 'us', item: us})
 
         @scope.$on "kanban:us:deleted", (event, us) =>
             @kanbanUserstoriesService.remove(us)

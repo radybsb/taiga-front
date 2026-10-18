@@ -7,6 +7,9 @@ TaskDetailLightbox = (lightboxService, attachments, modelTransform, $rs, $rootSc
         el.data('scope', scope)
         previousScope = modelTransform.scope
         previousProp = modelTransform.prop
+        previousAttachments = {}
+        for key in ['_attachments', '_deprecatedsCount', '_attachmentsVisible', '_deprecatedsVisible', 'uploadingAttachments', '_attachmentContext']
+            previousAttachments[key] = attachments[key]
         scope.taskPopup = true
         scope.task = scope.popupTask
         scope.project = scope.popupProject
@@ -38,9 +41,13 @@ TaskDetailLightbox = (lightboxService, attachments, modelTransform, $rs, $rootSc
             scope.loadFailed = true
             $confirm.notify('error') unless scope.$$destroyed
         scope.$on '$destroy', ->
+            attachments.invalidatePendingLoads?()
+            for key, value of previousAttachments
+                attachments[key] = value
             if modelTransform.scope == scope
                 modelTransform.setObject(previousScope, previousProp)
             $rootScope.$broadcast('taskform:edit:success', scope.task)
+            $rootScope.$broadcast('detail-popup:updated', {type: 'task', item: scope.task, projectId: scope.projectId})
         lightboxService.open(el)
     return {link: link, templateUrl: 'task/task-detail-lightbox.html'}
 

@@ -29,7 +29,7 @@ class DetailPopupService
                 for preview in $(detail).find('.lightbox.open').get().reverse()
                     @lightboxService.close($(preview))
                 @lightboxService.close($(detail))
-            @factory.create('tg-detail-popup', {'class': 'lightbox lightbox-task-detail'}, {
+            @factory.create('tg-detail-popup', {'class': 'lightbox lightbox-task-detail', 'tg-detail-popup-refresh': true}, {
                 popupType: type, popupRef: options.ref, popupProject: project
             })
         .catch(=> @confirm.notify('error') if generation == @generation).finally => delete @pending[key]
@@ -46,7 +46,7 @@ DetailPopupDirective = ($controller, $rs, $rootScope, $q, projectService, transf
         previousScope = transform.scope
         previousProp = transform.prop
         previousAttachments = {}
-        for key in ['_attachments', '_deprecatedsCount', '_attachmentsVisible', '_deprecatedsVisible', 'uploadingAttachments']
+        for key in ['_attachments', '_deprecatedsCount', '_attachmentsVisible', '_deprecatedsVisible', 'uploadingAttachments', '_attachmentContext']
             previousAttachments[key] = attachments[key]
         localProject = Object.create(projectService)
         localProject._project = scope.popupProject
@@ -75,6 +75,7 @@ DetailPopupDirective = ($controller, $rs, $rootScope, $q, projectService, transf
             item = scope[scope.popupType]
             if transform.scope == scope
                 transform.setObject(previousScope, previousProp)
+            attachments.invalidatePendingLoads?()
             for key, value of previousAttachments
                 attachments[key] = value
             projectService._project = previousProject

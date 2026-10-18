@@ -19,6 +19,9 @@ class AttachmentsFullService extends taiga.Service
         @._attachmentsVisible = Immutable.List()
         @._deprecatedsVisible = false
         @.uploadingAttachments = []
+        @uploadsByObject = {}
+        @_attachmentContext = null
+        @attachmentLoadVersion = 0
         @.types = @attachmentsService.types
 
         taiga.defineImmutableProperty @, 'attachments', () => return @._attachments
@@ -38,52 +41,57 @@ class AttachmentsFullService extends taiga.Service
         else
             @._attachmentsVisible = @._attachments.filter (it) -> !it.getIn(['file', 'is_deprecated'])
 
+    contextKey: (type, objId, projectId) -> "#{projectId}:#{type}:#{objId}"
+
+    invalidatePendingLoads: -> @attachmentLoadVersion += 1
+
+    activateContext: (key) ->
+        if @_attachmentContext != key
+            @invalidatePendingLoads()
+            @_attachmentContext = key
+            @._attachments = Immutable.List()
+            @._deprecatedsVisible = false
+            @regenerate()
+        @uploadsByObject[key] ||= []
+        @uploadingAttachments = @uploadsByObject[key]
+
     addAttachment: (projectId, objId, type, file, editable = true, comment = false) ->
-        return @q (resolve, reject) =>
-            if @attachmentsService.validate(file)
-                @.uploadingAttachments.push(file)
-
-                promise = @attachmentsService.upload(file, objId, projectId, type, comment)
-                promise.then (file) =>
-                    @.uploadingAttachments = @.uploadingAttachments.filter (uploading) ->
-                        return uploading.name != file.get('name')
-
-                    attachment = Immutable.Map()
-
-                    attachment = attachment.merge({
-                        file: file,
-                        editable: editable,
-                        loading: false,
-                        from_comment: comment
-                    })
-
-                    @._attachments = @._attachments.push(attachment)
-
-                    @.regenerate()
-
-                    @rootScope.$broadcast("attachment:create")
-
-                    resolve(attachment)
-            else
-                reject(new Error(file))
+        return @q.reject(new Error(file)) unless @attachmentsService.validate(file)
+        key = @contextKey(type, objId, projectId)
+        @activateContext(key)
+        uploads = @uploadingAttachments
+        uploads.push(file)
+        return @attachmentsService.upload(file, objId, projectId, type, comment).then (uploaded) =>
+            attachment = Immutable.Map().merge({file: uploaded, editable: editable, loading: false, from_comment: comment})
+            if @_attachmentContext == key
+                @invalidatePendingLoads()
+                @._attachments = @._attachments.filter((item) -> item.getIn(['file', 'id']) != uploaded.get('id')).push(attachment)
+                @regenerate()
+                @rootScope.$broadcast('attachment:create')
+            @rootScope.$broadcast('attachment:saved', {type: type, projectId: projectId, item: {id: objId, project: projectId}})
+            return attachment
+        .finally ->
+            # Match the original file, not a server-normalized filename, and
+            # mutate the owning queue so saved popup contexts see the cleanup.
+            index = uploads.indexOf(file)
+            uploads.splice(index, 1) if index != -1
 
     loadAttachments: (type, objId, projectId)->
+        key = @contextKey(type, objId, projectId)
+        @activateContext(key)
+        version = @invalidatePendingLoads()
         @attachmentsService.list(type, objId, projectId).then (files) =>
+            return unless @_attachmentContext == key && @attachmentLoadVersion == version
             @._attachments = files.map (file) ->
-                attachment = Immutable.Map()
-
-                return attachment.merge({
-                    loading: false,
-                    editable: false,
-                    file: file
-                })
-
+                return Immutable.Map().merge({loading: false, editable: false, file: file})
+            @regenerate()
             @rootScope.$broadcast("attachments:loaded", @._attachments)
 
-            @.regenerate()
-
     deleteAttachment: (toDeleteAttachment, type) ->
+        key = @_attachmentContext
         onSuccess = () =>
+            return unless @_attachmentContext == key
+            @invalidatePendingLoads()
             @._attachments = @._attachments.filter (attachment) -> attachment != toDeleteAttachment
 
             @.regenerate()
@@ -91,6 +99,7 @@ class AttachmentsFullService extends taiga.Service
         return @attachmentsService.delete(type, toDeleteAttachment.getIn(['file', 'id'])).then(onSuccess)
 
     reorderAttachment: (objectId, type, attachment, newIndex) ->
+        @invalidatePendingLoads()
         oldIndex = @.attachments.findIndex (it) -> it == attachment
 
         attachments = @.attachments.remove(oldIndex)
@@ -114,6 +123,7 @@ class AttachmentsFullService extends taiga.Service
         )
 
     updateAttachment: (toUpdateAttachment, type) ->
+        key = @_attachmentContext
         index = @._attachments.findIndex (attachment) ->
             return attachment.getIn(['file', 'id']) == toUpdateAttachment.getIn(['file', 'id'])
 
@@ -128,9 +138,10 @@ class AttachmentsFullService extends taiga.Service
                 @.setAttachments(index, toUpdateAttachment)
             else
                 return @attachmentsService.patch(toUpdateAttachment.getIn(['file', 'id']), type, patch).then () =>
-                    @.setAttachments(index, toUpdateAttachment)
+                    @.setAttachments(index, toUpdateAttachment) if @_attachmentContext == key
 
     setAttachments: (index, toUpdateAttachment) ->
+        @invalidatePendingLoads()
         @._attachments = @._attachments.set(index, toUpdateAttachment)
 
         @.regenerate()

@@ -44,7 +44,8 @@ class BacklogController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.F
         "$tgStorage",
         "tgFilterRemoteStorageService",
         "tgProjectService",
-        "tgLoader"
+        "tgLoader",
+        "tgDetailPopupRefresh"
     ]
 
     storeCustomFiltersName: 'backlog-custom-filters'
@@ -69,7 +70,7 @@ class BacklogController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.F
 
     constructor: (@scope, @rootscope, @repo, @confirm, @rs, @params, @q, @location, @appMetaService, @navUrls,
                   @events, @analytics, @translate, @loading, @rs2, @modelTransform, @errorHandlingService,
-                  @storage, @filterRemoteStorageService, @projectService, @tgLoader) ->
+                  @storage, @filterRemoteStorageService, @projectService, @tgLoader, @popupRefresh) ->
         bindMethods(@)
 
         @.backlogOrder = {}
@@ -150,6 +151,15 @@ class BacklogController extends mixOf(taiga.Controller, taiga.PageMixin, taiga.F
         @.loadUserstories(true)
 
     initializeEventHandlers: ->
+        @popupRefresh.listen(@scope, (=>
+            requests = [
+                (if @scope.userstories.length then @.loadAllPaginatedUserstories() else @.loadUserstories(true)),
+                @.loadSprints(),
+                @.loadProjectStats()
+            ]
+            requests.push(@.loadClosedSprints()) if @scope.closedSprints?.length
+            @q.all(requests).then => @.generateFilters(milestone = "null")
+        ), => @confirm.notify('error'))
         load = () =>
             @.loadUserstories(true)
             @.loadProjectStats()
